@@ -2,7 +2,13 @@ package com.example.fractal;
 
 import com.example.fractal.model.FractalDefinition;
 
+import javax.imageio.ImageIO;
+import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JPopupMenu;
+import javax.swing.JFileChooser;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Dimension;
@@ -16,6 +22,8 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseWheelEvent;
 import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
 
 public class FractalCanvas extends JPanel {
 
@@ -95,6 +103,10 @@ public class FractalCanvas extends JPanel {
         MouseAdapter adapter = new MouseAdapter() {
             @Override
             public void mousePressed(MouseEvent e) {
+                if (showPopupIfNeeded(e)) {
+                    return;
+                }
+
                 mouseX = e.getX();
                 mouseY = e.getY();
                 if (e.isShiftDown()) {
@@ -138,6 +150,10 @@ public class FractalCanvas extends JPanel {
 
             @Override
             public void mouseReleased(MouseEvent e) {
+                if (showPopupIfNeeded(e)) {
+                    return;
+                }
+
                 mouseX = e.getX();
                 mouseY = e.getY();
                 if (selectionMode) {
@@ -184,6 +200,55 @@ public class FractalCanvas extends JPanel {
         addMouseListener(adapter);
         addMouseMotionListener(adapter);
         addMouseWheelListener(adapter);
+    }
+
+    private boolean showPopupIfNeeded(MouseEvent e) {
+        if (!e.isPopupTrigger()) {
+            return false;
+        }
+
+        JPopupMenu popupMenu = new JPopupMenu();
+        JMenuItem exportItem = new JMenuItem("导出当前视图 PNG");
+        exportItem.addActionListener(event -> exportCurrentView());
+        popupMenu.add(exportItem);
+        popupMenu.show(e.getComponent(), e.getX(), e.getY());
+        return true;
+    }
+
+    private void exportCurrentView() {
+        if (definition == null || getWidth() <= 0 || getHeight() <= 0) {
+            JOptionPane.showMessageDialog(this, "当前没有可导出的分形视图。", "导出失败", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        JFileChooser chooser = new JFileChooser();
+        chooser.setDialogTitle("导出当前视图");
+        chooser.setSelectedFile(new File(buildDefaultFileName()));
+        chooser.setFileFilter(new FileNameExtensionFilter("PNG 图片", "png"));
+
+        int result = chooser.showSaveDialog(this);
+        if (result != JFileChooser.APPROVE_OPTION) {
+            return;
+        }
+
+        File file = chooser.getSelectedFile();
+        if (!file.getName().toLowerCase().endsWith(".png")) {
+            file = new File(file.getParentFile(), file.getName() + ".png");
+        }
+
+        try {
+            BufferedImage exportImage = renderImage(getWidth(), getHeight());
+            ImageIO.write(exportImage, "png", file);
+            JOptionPane.showMessageDialog(this, "导出成功:\n" + file.getAbsolutePath(), "导出完成", JOptionPane.INFORMATION_MESSAGE);
+        } catch (IOException ex) {
+            JOptionPane.showMessageDialog(this, "导出失败:\n" + ex.getMessage(), "导出失败", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private String buildDefaultFileName() {
+        String name = definition != null ? definition.name() : "fractal";
+        String normalized = name.replaceAll("[^a-zA-Z0-9\u4e00-\u9fa5-_]", "_");
+        return normalized + "-zoom-" + String.format("%.2f", zoom).replace('.', '_') + ".png";
     }
 
     private void applySelectionZoom() {
@@ -245,15 +310,7 @@ public class FractalCanvas extends JPanel {
             return;
         }
 
-        if (image == null || image.getWidth() != width || image.getHeight() != height) {
-            image = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
-        }
-
-        Graphics2D imageGraphics = image.createGraphics();
-        imageGraphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-        imageGraphics.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
-        definition.renderer().render(imageGraphics, width, height, depth, zoom, offsetX, offsetY);
-        imageGraphics.dispose();
+        image = renderImage(width, height);
 
         Graphics2D graphics = (Graphics2D) g;
         graphics.drawImage(image, 0, 0, null);
@@ -261,15 +318,26 @@ public class FractalCanvas extends JPanel {
         paintSelection(graphics);
     }
 
+    private BufferedImage renderImage(int width, int height) {
+        BufferedImage rendered = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D imageGraphics = rendered.createGraphics();
+        imageGraphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        imageGraphics.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+        definition.renderer().render(imageGraphics, width, height, depth, zoom, offsetX, offsetY);
+        imageGraphics.dispose();
+        return rendered;
+    }
+
     private void paintOverlay(Graphics2D graphics) {
         graphics.setFont(graphics.getFont().deriveFont(Font.PLAIN, 13f));
         graphics.setColor(new Color(0, 0, 0, 150));
-        graphics.fillRoundRect(16, 16, 370, 88, 14, 14);
+        graphics.fillRoundRect(16, 16, 420, 106, 14, 14);
         graphics.setColor(new Color(232, 238, 255));
         graphics.drawString("左键拖拽: 平移视图", 28, 42);
         graphics.drawString("滚轮: 以鼠标为中心无极缩放", 28, 62);
         graphics.drawString("Shift + 拖拽: 框选缩放", 28, 82);
         graphics.drawString("双击: 重置视图", 28, 102);
+        graphics.drawString("右键: 导出当前视图 PNG", 28, 122);
     }
 
     private void paintSelection(Graphics2D graphics) {

@@ -117,7 +117,7 @@ public class FractalFrame extends JFrame {
         panel.add(buttonPanel);
         panel.add(createSpacer());
 
-        JLabel tipLabel = new JLabel("<html>鼠标操作：<br/>1. 左键拖拽平移<br/>2. 滚轮以鼠标为中心无极缩放<br/>3. Shift + 拖拽框选缩放<br/>4. 双击重置视图</html>");
+        JLabel tipLabel = new JLabel("<html>鼠标操作：<br/>1. 左键拖拽平移<br/>2. 滚轮以鼠标为中心无极缩放<br/>3. Shift + 拖拽框选缩放<br/>4. 双击重置视图<br/>5. 右键导出当前视图 PNG</html>");
         tipLabel.setBorder(BorderFactory.createTitledBorder("交互说明"));
         panel.add(tipLabel);
         panel.add(createSpacer());
