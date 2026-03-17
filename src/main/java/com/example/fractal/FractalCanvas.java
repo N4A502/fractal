@@ -25,6 +25,7 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseWheelEvent;
 import java.awt.geom.AffineTransform;
+import java.awt.geom.Area;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
@@ -473,9 +474,14 @@ public class FractalCanvas extends JPanel {
         }
 
         Rectangle area = toRectangle(selectionStart, selectionEnd);
-        graphics.setColor(new Color(86, 174, 255, 50));
+        Area dimArea = new Area(new Rectangle(0, 0, getWidth(), getHeight()));
+        dimArea.subtract(new Area(area));
+
+        graphics.setColor(new Color(6, 10, 18, 110));
+        graphics.fill(dimArea);
+        graphics.setColor(new Color(86, 174, 255, 55));
         graphics.fill(area);
-        graphics.setColor(new Color(86, 174, 255, 220));
+        graphics.setColor(new Color(86, 174, 255, 230));
         graphics.setStroke(new BasicStroke(1.5f));
         graphics.draw(area);
     }
