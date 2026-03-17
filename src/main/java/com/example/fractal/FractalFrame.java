@@ -22,6 +22,8 @@ import java.util.List;
 public class FractalFrame extends JFrame {
 
     private static final int DEFAULT_ZOOM_SLIDER_MAX = 400;
+    private static final Color CARD_BORDER = new Color(220, 226, 235);
+    private static final Color CARD_BACKGROUND = new Color(248, 250, 253);
 
     private final FractalCanvas canvas;
     private final JComboBox<FractalDefinition> fractalSelector;
@@ -107,9 +109,11 @@ public class FractalFrame extends JFrame {
         panel.add(createSectionLabel("说明"));
         descriptionLabel.setVerticalAlignment(SwingConstants.TOP);
         descriptionLabel.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(220, 226, 235)),
+                BorderFactory.createLineBorder(CARD_BORDER),
                 BorderFactory.createEmptyBorder(8, 10, 8, 10)
         ));
+        descriptionLabel.setOpaque(true);
+        descriptionLabel.setBackground(Color.WHITE);
         panel.add(descriptionLabel);
         panel.add(createSpacer());
 
@@ -132,14 +136,16 @@ public class FractalFrame extends JFrame {
         panel.add(buttonPanel);
         panel.add(createSpacer());
 
-        JLabel tipLabel = new JLabel("<html>1. 左键拖拽平移<br/>2. 滚轮以鼠标为中心无极缩放<br/>3. Shift + 拖拽框选缩放<br/>4. 双击重置视图<br/>5. 右键导出当前视图 PNG</html>");
-        tipLabel.setBorder(BorderFactory.createTitledBorder("交互说明"));
-        panel.add(tipLabel);
+        panel.add(createInfoCard(
+                "交互说明",
+                "<html>1. 左键拖拽平移<br/>2. 滚轮以鼠标为中心无极缩放<br/>3. Shift + 拖拽框选缩放<br/>4. 双击重置视图<br/>5. 右键导出当前视图 PNG</html>"
+        ));
         panel.add(createSpacer());
 
-        JLabel categoryTipLabel = new JLabel("<html>1. 逃逸时间分形<br/>2. 递归几何分形<br/>3. L-System / 规则替换分形</html>");
-        categoryTipLabel.setBorder(BorderFactory.createTitledBorder("分类覆盖"));
-        panel.add(categoryTipLabel);
+        panel.add(createInfoCard(
+                "分类覆盖",
+                "<html>1. 逃逸时间分形<br/>2. 递归几何分形<br/>3. L-System / 规则替换分形</html>"
+        ));
 
         return panel;
     }
@@ -148,6 +154,23 @@ public class FractalFrame extends JFrame {
         JLabel label = new JLabel(text);
         label.setBorder(BorderFactory.createEmptyBorder(0, 0, 4, 0));
         return label;
+    }
+
+    private JPanel createInfoCard(String title, String content) {
+        JPanel card = new JPanel(new BorderLayout(0, 8));
+        card.setOpaque(true);
+        card.setBackground(CARD_BACKGROUND);
+        card.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(CARD_BORDER),
+                BorderFactory.createEmptyBorder(10, 12, 10, 12)
+        ));
+        card.setMaximumSize(new Dimension(Integer.MAX_VALUE, 110));
+
+        JLabel titleLabel = new JLabel(title);
+        JLabel contentLabel = new JLabel(content);
+        card.add(titleLabel, BorderLayout.NORTH);
+        card.add(contentLabel, BorderLayout.CENTER);
+        return card;
     }
 
     private JPanel buildStatusBar() {
