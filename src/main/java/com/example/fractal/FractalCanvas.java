@@ -24,6 +24,7 @@ import java.awt.event.ComponentEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseWheelEvent;
+import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
@@ -47,6 +48,9 @@ public class FractalCanvas extends JPanel {
     private double zoom;
     private double offsetX;
     private double offsetY;
+    private double frozenZoom;
+    private double frozenOffsetX;
+    private double frozenOffsetY;
     private Point dragAnchor;
     private Point selectionStart;
     private Point selectionEnd;
@@ -176,6 +180,10 @@ public class FractalCanvas extends JPanel {
             frozenFrame = null;
             return;
         }
+
+        frozenZoom = zoom;
+        frozenOffsetX = offsetX;
+        frozenOffsetY = offsetY;
 
         if (image.getWidth() == width && image.getHeight() == height) {
             frozenFrame = copyImage(image);
@@ -404,7 +412,7 @@ public class FractalCanvas extends JPanel {
         graphics.fillRect(0, 0, getWidth(), getHeight());
 
         if (renderInProgress && frozenFrame != null) {
-            graphics.drawImage(frozenFrame, 0, 0, null);
+            paintPreviewFrame(graphics);
         } else if (image != null) {
             graphics.drawImage(image, 0, 0, null);
         }
@@ -414,6 +422,21 @@ public class FractalCanvas extends JPanel {
             paintSelection(graphics);
             paintRenderStatus(graphics);
         }
+    }
+
+    private void paintPreviewFrame(Graphics2D graphics) {
+        double zoomFactor = frozenZoom == 0.0 ? 1.0 : zoom / frozenZoom;
+        double centerX = getWidth() / 2.0;
+        double centerY = getHeight() / 2.0;
+        double deltaX = offsetX - frozenOffsetX;
+        double deltaY = offsetY - frozenOffsetY;
+
+        AffineTransform original = graphics.getTransform();
+        graphics.translate(centerX + deltaX, centerY + deltaY);
+        graphics.scale(zoomFactor, zoomFactor);
+        graphics.translate(-centerX, -centerY);
+        graphics.drawImage(frozenFrame, 0, 0, null);
+        graphics.setTransform(original);
     }
 
     private BufferedImage renderImage(int width,
