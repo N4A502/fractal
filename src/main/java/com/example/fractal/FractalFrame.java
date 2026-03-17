@@ -14,6 +14,7 @@ import javax.swing.JPanel;
 import javax.swing.JSlider;
 import javax.swing.SwingConstants;
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.util.List;
@@ -94,27 +95,32 @@ public class FractalFrame extends JFrame {
         panel.setBorder(BorderFactory.createEmptyBorder(16, 16, 16, 16));
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
 
-        panel.add(new JLabel("分形类型"));
+        panel.add(createSectionLabel("分形类型"));
         panel.add(fractalSelector);
         panel.add(createSpacer());
 
-        panel.add(new JLabel("分类"));
+        panel.add(createSectionLabel("分类"));
+        categoryLabel.setBorder(BorderFactory.createEmptyBorder(2, 2, 0, 2));
         panel.add(categoryLabel);
         panel.add(createSpacer());
 
-        panel.add(new JLabel("说明"));
+        panel.add(createSectionLabel("说明"));
         descriptionLabel.setVerticalAlignment(SwingConstants.TOP);
+        descriptionLabel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(220, 226, 235)),
+                BorderFactory.createEmptyBorder(8, 10, 8, 10)
+        ));
         panel.add(descriptionLabel);
         panel.add(createSpacer());
 
-        panel.add(new JLabel("层级 / 迭代"));
+        panel.add(createSectionLabel("层级 / 迭代"));
         panel.add(depthValueLabel);
         depthSlider.setMajorTickSpacing(1);
         depthSlider.setPaintTicks(true);
         panel.add(depthSlider);
         panel.add(createSpacer());
 
-        panel.add(new JLabel("缩放"));
+        panel.add(createSectionLabel("缩放"));
         panel.add(zoomValueLabel);
         panel.add(zoomSlider);
         panel.add(createSpacer());
@@ -126,16 +132,22 @@ public class FractalFrame extends JFrame {
         panel.add(buttonPanel);
         panel.add(createSpacer());
 
-        JLabel tipLabel = new JLabel("<html>鼠标操作：<br/>1. 左键拖拽平移<br/>2. 滚轮以鼠标为中心无极缩放<br/>3. Shift + 拖拽框选缩放<br/>4. 双击重置视图<br/>5. 右键导出当前视图 PNG</html>");
+        JLabel tipLabel = new JLabel("<html>1. 左键拖拽平移<br/>2. 滚轮以鼠标为中心无极缩放<br/>3. Shift + 拖拽框选缩放<br/>4. 双击重置视图<br/>5. 右键导出当前视图 PNG</html>");
         tipLabel.setBorder(BorderFactory.createTitledBorder("交互说明"));
         panel.add(tipLabel);
         panel.add(createSpacer());
 
-        JLabel categoryTipLabel = new JLabel("<html>已包含主要分类：<br/>1. 逃逸时间分形<br/>2. 递归几何分形<br/>3. L-System / 规则替换分形</html>");
+        JLabel categoryTipLabel = new JLabel("<html>1. 逃逸时间分形<br/>2. 递归几何分形<br/>3. L-System / 规则替换分形</html>");
         categoryTipLabel.setBorder(BorderFactory.createTitledBorder("分类覆盖"));
         panel.add(categoryTipLabel);
 
         return panel;
+    }
+
+    private JLabel createSectionLabel(String text) {
+        JLabel label = new JLabel(text);
+        label.setBorder(BorderFactory.createEmptyBorder(0, 0, 4, 0));
+        return label;
     }
 
     private JPanel buildStatusBar() {
@@ -147,8 +159,8 @@ public class FractalFrame extends JFrame {
 
     private JPanel createSpacer() {
         JPanel spacer = new JPanel(new BorderLayout());
-        spacer.setPreferredSize(new Dimension(0, 14));
-        spacer.setMaximumSize(new Dimension(Integer.MAX_VALUE, 14));
+        spacer.setPreferredSize(new Dimension(0, 12));
+        spacer.setMaximumSize(new Dimension(Integer.MAX_VALUE, 12));
         return spacer;
     }
 
@@ -159,7 +171,7 @@ public class FractalFrame extends JFrame {
         }
 
         categoryLabel.setText(definition.category());
-        descriptionLabel.setText("<html><body style='width:260px'>" + definition.description() + "</body></html>");
+        descriptionLabel.setText("<html><body style='width:240px'>" + definition.description() + "</body></html>");
         depthSlider.setMinimum(definition.minDepth());
         depthSlider.setMaximum(definition.maxDepth());
         depthSlider.setValue(Math.min(Math.max(definition.defaultDepth(), definition.minDepth()), definition.maxDepth()));
