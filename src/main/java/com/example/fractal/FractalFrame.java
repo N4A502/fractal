@@ -8,10 +8,13 @@ import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
+import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JSlider;
+import javax.swing.JSpinner;
+import javax.swing.SpinnerNumberModel;
 import javax.swing.SwingConstants;
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -27,7 +30,7 @@ public class FractalFrame extends JFrame {
 
     private final FractalCanvas canvas;
     private final JComboBox<FractalDefinition> fractalSelector;
-    private final JSlider depthSlider;
+    private final JSpinner depthSpinner;
     private final JSlider zoomSlider;
     private final JLabel categoryLabel;
     private final JLabel descriptionLabel;
@@ -44,7 +47,7 @@ public class FractalFrame extends JFrame {
         List<FractalDefinition> fractals = FractalRegistry.createDefinitions();
         this.canvas = new FractalCanvas();
         this.fractalSelector = new JComboBox<FractalDefinition>(fractals.toArray(new FractalDefinition[0]));
-        this.depthSlider = new JSlider(1, 9, 5);
+        this.depthSpinner = new JSpinner(new SpinnerNumberModel(5, 1, null, 1));
         this.zoomSlider = new JSlider(10, DEFAULT_ZOOM_SLIDER_MAX, 100);
         this.categoryLabel = new JLabel();
         this.descriptionLabel = new JLabel();
@@ -59,7 +62,7 @@ public class FractalFrame extends JFrame {
         add(buildStatusBar(), BorderLayout.SOUTH);
 
         fractalSelector.addActionListener(e -> syncSelection());
-        depthSlider.addChangeListener(e -> syncControls());
+        depthSpinner.addChangeListener(e -> syncControls());
         zoomSlider.addChangeListener(e -> syncControls());
         canvas.setInteractionListener(new FractalCanvas.InteractionListener() {
             @Override
@@ -85,10 +88,16 @@ public class FractalFrame extends JFrame {
     }
 
     private void normalizeControlHeights() {
-        Dimension comboSize = fractalSelector.getPreferredSize();
-        fractalSelector.setMaximumSize(new Dimension(Integer.MAX_VALUE, comboSize.height));
-        fractalSelector.setPreferredSize(new Dimension(Integer.MAX_VALUE, comboSize.height));
-        fractalSelector.setMinimumSize(new Dimension(120, comboSize.height));
+        normalizeControlHeight(fractalSelector);
+        normalizeControlHeight(depthSpinner);
+    }
+
+    private void normalizeControlHeight(JComponent component) {
+        Dimension size = component.getPreferredSize();
+        component.setMaximumSize(new Dimension(Integer.MAX_VALUE, size.height));
+        component.setPreferredSize(new Dimension(Integer.MAX_VALUE, size.height));
+        component.setMinimumSize(new Dimension(120, size.height));
+        component.setAlignmentX(LEFT_ALIGNMENT);
     }
 
     private JPanel buildControlPanel() {
@@ -103,6 +112,7 @@ public class FractalFrame extends JFrame {
 
         panel.add(createSectionLabel("分类"));
         categoryLabel.setBorder(BorderFactory.createEmptyBorder(2, 2, 0, 2));
+        categoryLabel.setAlignmentX(LEFT_ALIGNMENT);
         panel.add(categoryLabel);
         panel.add(createSpacer());
 
@@ -114,17 +124,19 @@ public class FractalFrame extends JFrame {
         ));
         descriptionLabel.setOpaque(true);
         descriptionLabel.setBackground(Color.WHITE);
+        descriptionLabel.setAlignmentX(LEFT_ALIGNMENT);
         panel.add(descriptionLabel);
         panel.add(createSpacer());
 
         panel.add(createSectionLabel("层级 / 迭代"));
+        depthValueLabel.setAlignmentX(LEFT_ALIGNMENT);
         panel.add(depthValueLabel);
-        depthSlider.setMajorTickSpacing(1);
-        depthSlider.setPaintTicks(true);
-        panel.add(depthSlider);
+        panel.add(depthSpinner);
         panel.add(createSpacer());
 
         panel.add(createSectionLabel("缩放"));
+        zoomValueLabel.setAlignmentX(LEFT_ALIGNMENT);
+        zoomSlider.setAlignmentX(LEFT_ALIGNMENT);
         panel.add(zoomValueLabel);
         panel.add(zoomSlider);
         panel.add(createSpacer());
@@ -132,6 +144,7 @@ public class FractalFrame extends JFrame {
         JButton resetButton = new JButton("重置视图");
         resetButton.addActionListener(e -> resetControls());
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        buttonPanel.setAlignmentX(LEFT_ALIGNMENT);
         buttonPanel.add(resetButton);
         panel.add(buttonPanel);
         panel.add(createSpacer());
@@ -153,6 +166,7 @@ public class FractalFrame extends JFrame {
     private JLabel createSectionLabel(String text) {
         JLabel label = new JLabel(text);
         label.setBorder(BorderFactory.createEmptyBorder(0, 0, 4, 0));
+        label.setAlignmentX(LEFT_ALIGNMENT);
         return label;
     }
 
@@ -165,6 +179,7 @@ public class FractalFrame extends JFrame {
                 BorderFactory.createEmptyBorder(10, 12, 10, 12)
         ));
         card.setMaximumSize(new Dimension(Integer.MAX_VALUE, 110));
+        card.setAlignmentX(LEFT_ALIGNMENT);
 
         JLabel titleLabel = new JLabel(title);
         JLabel contentLabel = new JLabel(content);
@@ -184,6 +199,7 @@ public class FractalFrame extends JFrame {
         JPanel spacer = new JPanel(new BorderLayout());
         spacer.setPreferredSize(new Dimension(0, 12));
         spacer.setMaximumSize(new Dimension(Integer.MAX_VALUE, 12));
+        spacer.setAlignmentX(LEFT_ALIGNMENT);
         return spacer;
     }
 
@@ -195,9 +211,8 @@ public class FractalFrame extends JFrame {
 
         categoryLabel.setText(definition.category());
         descriptionLabel.setText("<html><body style='width:240px'>" + definition.description() + "</body></html>");
-        depthSlider.setMinimum(definition.minDepth());
-        depthSlider.setMaximum(definition.maxDepth());
-        depthSlider.setValue(Math.min(Math.max(definition.defaultDepth(), definition.minDepth()), definition.maxDepth()));
+        ((SpinnerNumberModel) depthSpinner.getModel()).setMinimum(definition.minDepth());
+        depthSpinner.setValue(Math.max(definition.defaultDepth(), definition.minDepth()));
         zoomSlider.setMaximum(Math.max(DEFAULT_ZOOM_SLIDER_MAX, definition.defaultZoom()));
         zoomSlider.setValue(definition.defaultZoom());
         canvas.resetView();
@@ -210,7 +225,7 @@ public class FractalFrame extends JFrame {
             return;
         }
 
-        int depth = depthSlider.getValue();
+        int depth = ((Number) depthSpinner.getValue()).intValue();
         double zoom = zoomSlider.getValue() / 100.0;
         depthValueLabel.setText(depth + " 级");
         zoomValueLabel.setText(String.format("%.2f x", zoom));
@@ -225,7 +240,7 @@ public class FractalFrame extends JFrame {
 
         canvas.resetView();
         zoomSlider.setMaximum(Math.max(DEFAULT_ZOOM_SLIDER_MAX, definition.defaultZoom()));
-        depthSlider.setValue(definition.defaultDepth());
+        depthSpinner.setValue(Math.max(definition.defaultDepth(), definition.minDepth()));
         zoomSlider.setValue(definition.defaultZoom());
         syncControls();
     }
