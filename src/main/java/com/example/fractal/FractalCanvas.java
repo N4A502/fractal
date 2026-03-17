@@ -9,6 +9,7 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
 import javax.swing.SwingWorker;
+import javax.swing.Timer;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.BasicStroke;
 import java.awt.Color;
@@ -41,6 +42,7 @@ public class FractalCanvas extends JPanel {
     }
 
     private static final double MIN_ZOOM = 0.1;
+    private static final int DRAG_RENDER_DELAY_MS = 40;
 
     private BufferedImage image;
     private BufferedImage frozenFrame;
@@ -61,11 +63,14 @@ public class FractalCanvas extends JPanel {
     private boolean renderInProgress;
     private long renderSequence;
     private SwingWorker<BufferedImage, Void> renderWorker;
+    private final Timer dragRenderTimer;
     private InteractionListener interactionListener;
 
     public FractalCanvas() {
         setPreferredSize(new Dimension(880, 820));
         setBackground(new Color(8, 12, 24));
+        this.dragRenderTimer = new Timer(DRAG_RENDER_DELAY_MS, e -> scheduleRender());
+        this.dragRenderTimer.setRepeats(false);
         bindMouseInteractions();
         addComponentListener(new ComponentAdapter() {
             @Override
@@ -113,6 +118,7 @@ public class FractalCanvas extends JPanel {
         selectionStart = null;
         selectionEnd = null;
         selectionMode = false;
+        dragRenderTimer.stop();
         scheduleRender();
         notifyViewChanged();
     }
@@ -174,6 +180,11 @@ public class FractalCanvas extends JPanel {
             }
         };
         renderWorker.execute();
+    }
+
+    private void scheduleDragRender() {
+        dragRenderTimer.restart();
+        repaint();
     }
 
     private void freezeCurrentFrame(int width, int height) {
@@ -252,7 +263,7 @@ public class FractalCanvas extends JPanel {
                 offsetX += point.getX() - dragAnchor.getX();
                 offsetY += point.getY() - dragAnchor.getY();
                 dragAnchor = point;
-                scheduleRender();
+                scheduleDragRender();
                 notifyViewChanged();
             }
 
@@ -267,6 +278,9 @@ public class FractalCanvas extends JPanel {
                 if (selectionMode) {
                     selectionEnd = e.getPoint();
                     applySelectionZoom();
+                } else {
+                    dragRenderTimer.stop();
+                    scheduleRender();
                 }
                 dragAnchor = null;
                 selectionMode = false;
