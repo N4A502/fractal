@@ -10,20 +10,27 @@ public abstract class AbstractEscapeTimeRenderer implements FractalRenderer {
     public void render(Graphics2D graphics, int width, int height, int depth, double zoom, double offsetX, double offsetY) {
         BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
         int maxIterations = 60 + depth * 40;
-        double scale = getBaseScale() / zoom;
-        double centerX = getCenterX();
-        double centerY = getCenterY();
 
         for (int px = 0; px < width; px++) {
             for (int py = 0; py < height; py++) {
-                double x0 = (px - width / 2.0 - offsetX) * scale / width + centerX;
-                double y0 = (py - height / 2.0 - offsetY) * scale / width + centerY;
+                double x0 = mapPlaneX(px, width, zoom, offsetX);
+                double y0 = mapPlaneY(py, width, height, zoom, offsetY);
                 int iterations = iteratePoint(x0, y0, maxIterations);
                 image.setRGB(px, py, computeColor(iterations, maxIterations).getRGB());
             }
         }
 
         graphics.drawImage(image, 0, 0, null);
+    }
+
+    public double mapPlaneX(int pixelX, int width, double zoom, double offsetX) {
+        double scale = getBaseScale() / zoom;
+        return (pixelX - width / 2.0 - offsetX) * scale / width + getCenterX();
+    }
+
+    public double mapPlaneY(int pixelY, int width, int height, double zoom, double offsetY) {
+        double scale = getBaseScale() / zoom;
+        return (pixelY - height / 2.0 - offsetY) * scale / width + getCenterY();
     }
 
     protected abstract int iteratePoint(double x0, double y0, int maxIterations);

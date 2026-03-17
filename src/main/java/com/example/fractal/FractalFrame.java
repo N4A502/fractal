@@ -2,6 +2,7 @@ package com.example.fractal;
 
 import com.example.fractal.model.FractalDefinition;
 import com.example.fractal.model.FractalRegistry;
+import com.example.fractal.render.AbstractEscapeTimeRenderer;
 
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
@@ -64,8 +65,7 @@ public class FractalFrame extends JFrame {
 
             @Override
             public void onViewChanged(double zoom, double offsetX, double offsetY, int mouseX, int mouseY) {
-                String mouse = mouseX >= 0 && mouseY >= 0 ? mouseX + ", " + mouseY : "-, -";
-                statusLabel.setText(String.format("鼠标: %s | 缩放: %.2fx | 偏移: (%.0f, %.0f)", mouse, zoom, offsetX, offsetY));
+                statusLabel.setText(buildStatusText(zoom, offsetX, offsetY, mouseX, mouseY));
             }
 
             @Override
@@ -196,5 +196,27 @@ public class FractalFrame extends JFrame {
             zoomSlider.setMaximum(newMax);
         }
         zoomSlider.setValue(sliderValue);
+    }
+
+    private String buildStatusText(double zoom, double offsetX, double offsetY, int mouseX, int mouseY) {
+        String mouse = mouseX >= 0 && mouseY >= 0 ? mouseX + ", " + mouseY : "-, -";
+        String complex = buildComplexCoordinateText(mouseX, mouseY, zoom, offsetX, offsetY);
+        return String.format("鼠标: %s%s | 缩放: %.2fx | 偏移: (%.0f, %.0f)", mouse, complex, zoom, offsetX, offsetY);
+    }
+
+    private String buildComplexCoordinateText(int mouseX, int mouseY, double zoom, double offsetX, double offsetY) {
+        if (mouseX < 0 || mouseY < 0) {
+            return "";
+        }
+
+        FractalDefinition definition = (FractalDefinition) fractalSelector.getSelectedItem();
+        if (definition == null || !(definition.renderer() instanceof AbstractEscapeTimeRenderer)) {
+            return "";
+        }
+
+        AbstractEscapeTimeRenderer renderer = (AbstractEscapeTimeRenderer) definition.renderer();
+        double real = renderer.mapPlaneX(mouseX, canvas.getWidth(), zoom, offsetX);
+        double imaginary = renderer.mapPlaneY(mouseY, canvas.getWidth(), canvas.getHeight(), zoom, offsetY);
+        return String.format(" | 复平面: %.6f %+.6fi", real, imaginary);
     }
 }
