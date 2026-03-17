@@ -49,6 +49,8 @@ public class FractalFrame extends JFrame {
         this.zoomValueLabel = new JLabel("", SwingConstants.RIGHT);
         this.statusLabel = new JLabel("鼠标: -, - | 缩放: 1.00x | 偏移: (0, 0)");
 
+        normalizeControlHeights();
+
         add(buildControlPanel(), BorderLayout.WEST);
         add(canvas, BorderLayout.CENTER);
         add(buildStatusBar(), BorderLayout.SOUTH);
@@ -77,6 +79,13 @@ public class FractalFrame extends JFrame {
         syncSelection();
         pack();
         setLocationRelativeTo(null);
+    }
+
+    private void normalizeControlHeights() {
+        Dimension comboSize = fractalSelector.getPreferredSize();
+        fractalSelector.setMaximumSize(new Dimension(Integer.MAX_VALUE, comboSize.height));
+        fractalSelector.setPreferredSize(new Dimension(Integer.MAX_VALUE, comboSize.height));
+        fractalSelector.setMinimumSize(new Dimension(120, comboSize.height));
     }
 
     private JPanel buildControlPanel() {
