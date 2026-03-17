@@ -41,6 +41,7 @@ public class FractalCanvas extends JPanel {
     private static final double MIN_ZOOM = 0.1;
 
     private BufferedImage image;
+    private BufferedImage frozenFrame;
     private FractalDefinition definition;
     private int depth;
     private double zoom;
@@ -114,6 +115,7 @@ public class FractalCanvas extends JPanel {
     private void scheduleRender() {
         if (definition == null) {
             image = null;
+            frozenFrame = null;
             renderInProgress = false;
             repaint();
             return;
@@ -137,6 +139,7 @@ public class FractalCanvas extends JPanel {
         final double currentOffsetY = offsetY;
         final long currentSequence = ++renderSequence;
 
+        freezeCurrentFrame(width, height);
         renderInProgress = true;
         repaint();
 
@@ -154,6 +157,7 @@ public class FractalCanvas extends JPanel {
 
                 try {
                     image = get();
+                    frozenFrame = null;
                 } catch (Exception ignored) {
                     return;
                 } finally {
@@ -165,6 +169,33 @@ public class FractalCanvas extends JPanel {
             }
         };
         renderWorker.execute();
+    }
+
+    private void freezeCurrentFrame(int width, int height) {
+        if (image == null) {
+            frozenFrame = null;
+            return;
+        }
+
+        if (image.getWidth() == width && image.getHeight() == height) {
+            frozenFrame = copyImage(image);
+            return;
+        }
+
+        BufferedImage scaled = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D graphics = scaled.createGraphics();
+        graphics.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+        graphics.drawImage(image, 0, 0, width, height, null);
+        graphics.dispose();
+        frozenFrame = scaled;
+    }
+
+    private BufferedImage copyImage(BufferedImage source) {
+        BufferedImage copy = new BufferedImage(source.getWidth(), source.getHeight(), BufferedImage.TYPE_INT_ARGB);
+        Graphics2D graphics = copy.createGraphics();
+        graphics.drawImage(source, 0, 0, null);
+        graphics.dispose();
+        return copy;
     }
 
     private void bindMouseInteractions() {
@@ -372,7 +403,9 @@ public class FractalCanvas extends JPanel {
         graphics.setColor(getBackground());
         graphics.fillRect(0, 0, getWidth(), getHeight());
 
-        if (image != null) {
+        if (renderInProgress && frozenFrame != null) {
+            graphics.drawImage(frozenFrame, 0, 0, null);
+        } else if (image != null) {
             graphics.drawImage(image, 0, 0, null);
         }
 
