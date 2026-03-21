@@ -143,15 +143,25 @@ public class FractalFrame extends JFrame {
 
         JButton resetButton = new JButton("重置视图");
         resetButton.addActionListener(e -> resetControls());
+        JButton exportButton = new JButton("高分辨率导出");
+        exportButton.addActionListener(e -> canvas.exportHighResolutionView());
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
         buttonPanel.setAlignmentX(LEFT_ALIGNMENT);
         buttonPanel.add(resetButton);
+        buttonPanel.add(new JLabel("  "));
+        buttonPanel.add(exportButton);
         panel.add(buttonPanel);
         panel.add(createSpacer());
 
         panel.add(createInfoCard(
                 "交互说明",
-                "<html>1. 左键拖拽平移<br/>2. 滚轮以鼠标为中心无极缩放<br/>3. Shift + 拖拽框选缩放<br/>4. 双击重置视图<br/>5. 右键导出当前视图 PNG</html>"
+                "<html>1. 左键拖拽平移<br/>2. 滚轮以鼠标为中心无极缩放<br/>3. Shift + 拖拽框选缩放<br/>4. 双击重置视图<br/>5. 右键导出 PNG / 高分辨率 PNG</html>"
+        ));
+        panel.add(createSpacer());
+
+        panel.add(createInfoCard(
+                "导出说明",
+                "<html>支持当前尺寸、2x、4x 与自定义宽高 PNG 导出</html>"
         ));
         panel.add(createSpacer());
 
