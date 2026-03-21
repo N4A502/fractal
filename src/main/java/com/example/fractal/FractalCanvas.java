@@ -149,6 +149,21 @@ public class FractalCanvas extends JPanel {
         exportImageWithSize(exportSize.width, exportSize.height, "导出高分辨率 PNG");
     }
 
+
+    public long getLastRenderDurationMillis() {
+        return lastRenderDurationMillis;
+    }
+
+    public boolean isRenderInProgress() {
+        return renderInProgress;
+    }
+
+    public String getBackendDescription() {
+        if (!viewState.hasDefinition()) {
+            return "-";
+        }
+        return viewState.definition().renderer().backendDescription();
+    }
     private boolean canExport() {
         if (viewState.hasDefinition() && getWidth() > 0 && getHeight() > 0) {
             return true;
