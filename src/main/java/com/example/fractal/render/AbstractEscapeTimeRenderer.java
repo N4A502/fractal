@@ -3,12 +3,20 @@ package com.example.fractal.render;
 import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
-import java.util.Arrays;
-import java.util.stream.IntStream;
 
 public abstract class AbstractEscapeTimeRenderer implements FractalRenderer {
 
     private static final int INSIDE_COLOR_RGB = new Color(5, 8, 18).getRGB();
+
+    private final EscapeTimeBackend backend;
+
+    protected AbstractEscapeTimeRenderer() {
+        this(new CpuEscapeTimeBackend());
+    }
+
+    protected AbstractEscapeTimeRenderer(EscapeTimeBackend backend) {
+        this.backend = backend;
+    }
 
     @Override
     public void render(Graphics2D graphics, int width, int height, int depth, double zoom, double offsetX, double offsetY) {
@@ -17,28 +25,16 @@ public abstract class AbstractEscapeTimeRenderer implements FractalRenderer {
 
     @Override
     public BufferedImage renderImage(int width, int height, int depth, double zoom, double offsetX, double offsetY) {
-        int maxIterations = 60 + depth * 40;
-        int[] pixels = new int[width * height];
-        Arrays.fill(pixels, INSIDE_COLOR_RGB);
-
-        IntStream.range(0, height).parallel().forEach(py -> {
-            if (Thread.currentThread().isInterrupted()) {
-                return;
-            }
-
-            int rowOffset = py * width;
-            for (int px = 0; px < width; px++) {
-                if ((px & 63) == 0 && Thread.currentThread().isInterrupted()) {
-                    return;
-                }
-
-                double x0 = mapPlaneX(px, width, zoom, offsetX);
-                double y0 = mapPlaneY(py, width, height, zoom, offsetY);
-                int iterations = iteratePoint(x0, y0, maxIterations);
-                pixels[rowOffset + px] = computeColorRgb(iterations, maxIterations);
-            }
-        });
-
+        EscapeTimeRenderContext context = new EscapeTimeRenderContext(
+                width,
+                height,
+                depth,
+                zoom,
+                offsetX,
+                offsetY,
+                60 + depth * 40
+        );
+        int[] pixels = backend.renderPixels(this, context);
         BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
         image.setRGB(0, 0, width, height, pixels, 0, width);
         return image;
@@ -54,15 +50,19 @@ public abstract class AbstractEscapeTimeRenderer implements FractalRenderer {
         return (pixelY - height / 2.0 - offsetY) * scale / width + getCenterY();
     }
 
-    protected abstract int iteratePoint(double x0, double y0, int maxIterations);
-
     protected abstract double getBaseScale();
 
     protected abstract double getCenterX();
 
     protected abstract double getCenterY();
 
-    private int computeColorRgb(int iterations, int maxIterations) {
+    protected abstract int iteratePoint(double x0, double y0, int maxIterations);
+
+    protected final int insideColorRgb() {
+        return INSIDE_COLOR_RGB;
+    }
+
+    protected final int computeColorRgb(int iterations, int maxIterations) {
         if (iterations >= maxIterations) {
             return INSIDE_COLOR_RGB;
         }
