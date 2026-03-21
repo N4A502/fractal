@@ -37,6 +37,7 @@ public class FractalFrame extends JFrame {
     private final JLabel depthValueLabel;
     private final JLabel zoomValueLabel;
     private final JLabel statusLabel;
+    private boolean updatingZoomSlider;
 
     public FractalFrame() {
         super("Fractal Explorer");
@@ -63,12 +64,18 @@ public class FractalFrame extends JFrame {
 
         fractalSelector.addActionListener(e -> syncSelection());
         depthSpinner.addChangeListener(e -> syncControls());
-        zoomSlider.addChangeListener(e -> syncControls());
+        zoomSlider.addChangeListener(e -> {
+            if (!updatingZoomSlider) {
+                syncControls();
+            }
+        });
         canvas.setInteractionListener(new FractalCanvas.InteractionListener() {
             @Override
             public void onZoomChanged(double zoom, int anchorX, int anchorY) {
-                canvas.applyZoom(zoom, anchorX, anchorY);
                 setZoomSliderValue(zoom);
+                if (anchorX >= 0 && anchorY >= 0) {
+                    canvas.applyZoom(zoom, anchorX, anchorY);
+                }
             }
 
             @Override
@@ -257,14 +264,19 @@ public class FractalFrame extends JFrame {
 
     private void setZoomSliderValue(double zoom) {
         int sliderValue = Math.max(10, (int) Math.round(zoom * 100));
-        if (sliderValue > zoomSlider.getMaximum()) {
-            int newMax = zoomSlider.getMaximum();
-            while (sliderValue > newMax) {
-                newMax *= 2;
+        updatingZoomSlider = true;
+        try {
+            if (sliderValue > zoomSlider.getMaximum()) {
+                int newMax = zoomSlider.getMaximum();
+                while (sliderValue > newMax) {
+                    newMax *= 2;
+                }
+                zoomSlider.setMaximum(newMax);
             }
-            zoomSlider.setMaximum(newMax);
+            zoomSlider.setValue(sliderValue);
+        } finally {
+            updatingZoomSlider = false;
         }
-        zoomSlider.setValue(sliderValue);
     }
 
     private String buildStatusText(double zoom, double offsetX, double offsetY, int mouseX, int mouseY) {

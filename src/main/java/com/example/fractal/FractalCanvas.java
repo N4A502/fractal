@@ -1,6 +1,10 @@
 package com.example.fractal;
 
 import com.example.fractal.model.FractalDefinition;
+import com.example.fractal.model.FractalViewState;
+import com.example.fractal.render.FractalRenderService;
+import com.example.fractal.render.RenderRequest;
+import com.example.fractal.render.RenderResult;
 
 import javax.imageio.ImageIO;
 import javax.swing.JComboBox;
@@ -12,7 +16,6 @@ import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
 import javax.swing.JSpinner;
 import javax.swing.SpinnerNumberModel;
-import javax.swing.SwingWorker;
 import javax.swing.Timer;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.BasicStroke;
@@ -52,16 +55,13 @@ public class FractalCanvas extends JPanel {
     private static final int DRAG_RENDER_DELAY_MS = 40;
     private static final int MAX_EXPORT_DIMENSION = 12000;
 
+    private final Timer dragRenderTimer;
+    private final FractalRenderService renderService;
+
     private BufferedImage image;
     private BufferedImage frozenFrame;
-    private FractalDefinition definition;
-    private int depth;
-    private double zoom;
-    private double offsetX;
-    private double offsetY;
-    private double frozenZoom;
-    private double frozenOffsetX;
-    private double frozenOffsetY;
+    private FractalViewState viewState;
+    private FractalViewState frozenViewState;
     private Point dragAnchor;
     private Point selectionStart;
     private Point selectionEnd;
@@ -69,14 +69,14 @@ public class FractalCanvas extends JPanel {
     private int mouseY = -1;
     private boolean selectionMode;
     private boolean renderInProgress;
-    private long renderSequence;
-    private SwingWorker<BufferedImage, Void> renderWorker;
-    private final Timer dragRenderTimer;
+    private long lastRenderDurationMillis;
     private InteractionListener interactionListener;
 
     public FractalCanvas() {
         setPreferredSize(new Dimension(880, 820));
         setBackground(new Color(8, 12, 24));
+        this.renderService = new FractalRenderService();
+        this.viewState = new FractalViewState(null, 0, 1.0, 0.0, 0.0);
         this.dragRenderTimer = new Timer(DRAG_RENDER_DELAY_MS, e -> scheduleRender());
         this.dragRenderTimer.setRepeats(false);
         bindMouseInteractions();
@@ -93,16 +93,14 @@ public class FractalCanvas extends JPanel {
     }
 
     public void render(FractalDefinition definition, int depth, double zoom) {
-        this.definition = definition;
-        this.depth = depth;
-        this.zoom = zoom;
+        viewState = viewState.withDefinition(definition, depth, zoom);
         scheduleRender();
         notifyViewChanged();
     }
 
     public void applyZoom(double nextZoom, int anchorX, int anchorY) {
-        if (zoom <= 0.0) {
-            zoom = nextZoom;
+        if (viewState.zoom() <= 0.0) {
+            viewState = viewState.withZoomAndOffset(nextZoom, viewState.offsetX(), viewState.offsetY());
             scheduleRender();
             notifyViewChanged();
             return;
@@ -110,23 +108,22 @@ public class FractalCanvas extends JPanel {
 
         double centerX = getWidth() / 2.0;
         double centerY = getHeight() / 2.0;
-        double zoomFactor = nextZoom / zoom;
+        double zoomFactor = nextZoom / viewState.zoom();
+        double nextOffsetX = anchorX - centerX - zoomFactor * (anchorX - centerX - viewState.offsetX());
+        double nextOffsetY = anchorY - centerY - zoomFactor * (anchorY - centerY - viewState.offsetY());
 
-        offsetX = anchorX - centerX - zoomFactor * (anchorX - centerX - offsetX);
-        offsetY = anchorY - centerY - zoomFactor * (anchorY - centerY - offsetY);
-        zoom = nextZoom;
+        viewState = viewState.withZoomAndOffset(nextZoom, nextOffsetX, nextOffsetY);
         scheduleRender();
         notifyViewChanged();
     }
 
     public void resetView() {
-        offsetX = 0.0;
-        offsetY = 0.0;
         dragAnchor = null;
         selectionStart = null;
         selectionEnd = null;
         selectionMode = false;
         dragRenderTimer.stop();
+        viewState = viewState.resetOffset();
         scheduleRender();
         notifyViewChanged();
     }
@@ -153,7 +150,7 @@ public class FractalCanvas extends JPanel {
     }
 
     private boolean canExport() {
-        if (definition != null && getWidth() > 0 && getHeight() > 0) {
+        if (viewState.hasDefinition() && getWidth() > 0 && getHeight() > 0) {
             return true;
         }
 
@@ -162,9 +159,11 @@ public class FractalCanvas extends JPanel {
     }
 
     private void scheduleRender() {
-        if (definition == null) {
+        if (!viewState.hasDefinition()) {
+            renderService.cancelActiveRender();
             image = null;
             frozenFrame = null;
+            frozenViewState = null;
             renderInProgress = false;
             repaint();
             return;
@@ -177,47 +176,31 @@ public class FractalCanvas extends JPanel {
             return;
         }
 
-        if (renderWorker != null && !renderWorker.isDone()) {
-            renderWorker.cancel(true);
-        }
-
-        final FractalDefinition currentDefinition = definition;
-        final int currentDepth = depth;
-        final double currentZoom = zoom;
-        final double currentOffsetX = offsetX;
-        final double currentOffsetY = offsetY;
-        final long currentSequence = ++renderSequence;
-
         freezeCurrentFrame(width, height);
-        renderInProgress = true;
-        repaint();
-
-        renderWorker = new SwingWorker<BufferedImage, Void>() {
+        RenderRequest request = RenderRequest.of(viewState, width, height);
+        renderService.renderAsync(request, new FractalRenderService.Listener() {
             @Override
-            protected BufferedImage doInBackground() {
-                return renderImage(width, height, currentDefinition, currentDepth, currentZoom, currentOffsetX, currentOffsetY);
-            }
-
-            @Override
-            protected void done() {
-                if (isCancelled() || currentSequence != renderSequence) {
-                    return;
-                }
-
-                try {
-                    image = get();
-                    frozenFrame = null;
-                } catch (Exception ignored) {
-                    return;
-                } finally {
-                    if (currentSequence == renderSequence) {
-                        renderInProgress = false;
-                    }
-                }
+            public void onRenderStarted(RenderRequest ignored) {
+                renderInProgress = true;
                 repaint();
             }
-        };
-        renderWorker.execute();
+
+            @Override
+            public void onRenderCompleted(RenderResult result) {
+                image = result.image();
+                frozenFrame = null;
+                frozenViewState = null;
+                renderInProgress = false;
+                lastRenderDurationMillis = result.durationMillis();
+                repaint();
+            }
+
+            @Override
+            public void onRenderFailed(RenderRequest failedRequest, Exception exception) {
+                renderInProgress = false;
+                repaint();
+            }
+        });
     }
 
     private void scheduleDragRender() {
@@ -228,13 +211,11 @@ public class FractalCanvas extends JPanel {
     private void freezeCurrentFrame(int width, int height) {
         if (image == null) {
             frozenFrame = null;
+            frozenViewState = null;
             return;
         }
 
-        frozenZoom = zoom;
-        frozenOffsetX = offsetX;
-        frozenOffsetY = offsetY;
-
+        frozenViewState = viewState;
         if (image.getWidth() == width && image.getHeight() == height) {
             frozenFrame = copyImage(image);
             return;
@@ -298,8 +279,9 @@ public class FractalCanvas extends JPanel {
                 }
 
                 Point point = e.getPoint();
-                offsetX += point.getX() - dragAnchor.getX();
-                offsetY += point.getY() - dragAnchor.getY();
+                double nextOffsetX = viewState.offsetX() + point.getX() - dragAnchor.getX();
+                double nextOffsetY = viewState.offsetY() + point.getY() - dragAnchor.getY();
+                viewState = viewState.withOffset(nextOffsetX, nextOffsetY);
                 dragAnchor = point;
                 scheduleDragRender();
                 notifyViewChanged();
@@ -350,7 +332,7 @@ public class FractalCanvas extends JPanel {
             @Override
             public void mouseWheelMoved(MouseWheelEvent e) {
                 double factor = e.getWheelRotation() < 0 ? 1.12 : 1.0 / 1.12;
-                double nextZoom = clampMin(zoom * factor, MIN_ZOOM);
+                double nextZoom = clampMin(viewState.zoom() * factor, MIN_ZOOM);
                 if (interactionListener != null) {
                     interactionListener.onZoomChanged(nextZoom, e.getX(), e.getY());
                 }
@@ -397,11 +379,11 @@ public class FractalCanvas extends JPanel {
         }
 
         try {
-            BufferedImage exportImage = renderImage(width, height, definition, depth, zoom, offsetX, offsetY);
-            ImageIO.write(exportImage, "png", file);
+            RenderResult exportResult = renderService.renderMeasured(RenderRequest.of(viewState, width, height));
+            ImageIO.write(exportResult.image(), "png", file);
             JOptionPane.showMessageDialog(
                     this,
-                    String.format("导出成功 (%d x %d):\n%s", width, height, file.getAbsolutePath()),
+                    String.format("导出成功 (%d x %d, %d ms):\n%s", width, height, exportResult.durationMillis(), file.getAbsolutePath()),
                     "导出完成",
                     JOptionPane.INFORMATION_MESSAGE
             );
@@ -506,11 +488,11 @@ public class FractalCanvas extends JPanel {
     }
 
     private String buildDefaultFileName(int width, int height) {
-        String name = definition != null ? definition.name() : "fractal";
+        String name = viewState.definition() != null ? viewState.definition().name() : "fractal";
         String normalized = name.replaceAll("[^a-zA-Z0-9\u4e00-\u9fa5-_]", "_");
         return normalized
                 + "-zoom-"
-                + String.format("%.2f", zoom).replace('.', '_')
+                + String.format("%.2f", viewState.zoom()).replace('.', '_')
                 + "-"
                 + width
                 + "x"
@@ -531,22 +513,21 @@ public class FractalCanvas extends JPanel {
         }
 
         double factor = Math.min(getWidth() / (double) area.width, getHeight() / (double) area.height);
-        double nextZoom = clampMin(zoom * factor, MIN_ZOOM);
-        double zoomFactor = nextZoom / zoom;
+        double nextZoom = clampMin(viewState.zoom() * factor, MIN_ZOOM);
+        double zoomFactor = nextZoom / viewState.zoom();
         double rectCenterX = area.getCenterX();
         double rectCenterY = area.getCenterY();
         double centerX = getWidth() / 2.0;
         double centerY = getHeight() / 2.0;
+        double nextOffsetX = (viewState.offsetX() + centerX - rectCenterX) * zoomFactor;
+        double nextOffsetY = (viewState.offsetY() + centerY - rectCenterY) * zoomFactor;
 
-        offsetX = (offsetX + centerX - rectCenterX) * zoomFactor;
-        offsetY = (offsetY + centerY - rectCenterY) * zoomFactor;
-
+        viewState = viewState.withZoomAndOffset(nextZoom, nextOffsetX, nextOffsetY);
         clearSelection();
+        scheduleRender();
+        notifyViewChanged();
         if (interactionListener != null) {
-            interactionListener.onZoomChanged(nextZoom, (int) Math.round(centerX), (int) Math.round(centerY));
-        } else {
-            zoom = nextZoom;
-            scheduleRender();
+            interactionListener.onZoomChanged(nextZoom, -1, -1);
         }
     }
 
@@ -577,7 +558,7 @@ public class FractalCanvas extends JPanel {
             graphics.drawImage(image, 0, 0, null);
         }
 
-        if (definition != null) {
+        if (viewState.hasDefinition()) {
             paintOverlay(graphics);
             paintSelection(graphics);
             paintRenderStatus(graphics);
@@ -585,11 +566,16 @@ public class FractalCanvas extends JPanel {
     }
 
     private void paintPreviewFrame(Graphics2D graphics) {
-        double zoomFactor = frozenZoom == 0.0 ? 1.0 : zoom / frozenZoom;
+        if (frozenViewState == null) {
+            graphics.drawImage(frozenFrame, 0, 0, null);
+            return;
+        }
+
+        double zoomFactor = frozenViewState.zoom() == 0.0 ? 1.0 : viewState.zoom() / frozenViewState.zoom();
         double centerX = getWidth() / 2.0;
         double centerY = getHeight() / 2.0;
-        double deltaX = offsetX - frozenOffsetX;
-        double deltaY = offsetY - frozenOffsetY;
+        double deltaX = viewState.offsetX() - frozenViewState.offsetX();
+        double deltaY = viewState.offsetY() - frozenViewState.offsetY();
 
         AffineTransform original = graphics.getTransform();
         graphics.translate(centerX + deltaX, centerY + deltaY);
@@ -597,22 +583,6 @@ public class FractalCanvas extends JPanel {
         graphics.translate(-centerX, -centerY);
         graphics.drawImage(frozenFrame, 0, 0, null);
         graphics.setTransform(original);
-    }
-
-    private BufferedImage renderImage(int width,
-                                      int height,
-                                      FractalDefinition definition,
-                                      int depth,
-                                      double zoom,
-                                      double offsetX,
-                                      double offsetY) {
-        BufferedImage rendered = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
-        Graphics2D imageGraphics = rendered.createGraphics();
-        imageGraphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-        imageGraphics.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
-        definition.renderer().render(imageGraphics, width, height, depth, zoom, offsetX, offsetY);
-        imageGraphics.dispose();
-        return rendered;
     }
 
     private void paintOverlay(Graphics2D graphics) {
@@ -647,20 +617,17 @@ public class FractalCanvas extends JPanel {
     }
 
     private void paintRenderStatus(Graphics2D graphics) {
-        if (!renderInProgress) {
-            return;
-        }
-
+        String statusText = renderInProgress ? "正在渲染..." : String.format("最近渲染: %d ms", lastRenderDurationMillis);
         graphics.setColor(new Color(0, 0, 0, 160));
-        graphics.fillRoundRect(getWidth() - 180, 16, 156, 40, 12, 12);
+        graphics.fillRoundRect(getWidth() - 210, 16, 186, 40, 12, 12);
         graphics.setColor(new Color(240, 246, 255));
         graphics.setFont(graphics.getFont().deriveFont(Font.BOLD, 14f));
-        graphics.drawString("正在渲染...", getWidth() - 156, 41);
+        graphics.drawString(statusText, getWidth() - 186, 41);
     }
 
     private void notifyViewChanged() {
         if (interactionListener != null) {
-            interactionListener.onViewChanged(zoom, offsetX, offsetY, mouseX, mouseY);
+            interactionListener.onViewChanged(viewState.zoom(), viewState.offsetX(), viewState.offsetY(), mouseX, mouseY);
         }
     }
 
