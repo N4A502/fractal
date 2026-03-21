@@ -8,14 +8,14 @@ public abstract class AbstractEscapeTimeRenderer implements FractalRenderer {
 
     private static final int INSIDE_COLOR_RGB = new Color(5, 8, 18).getRGB();
 
-    private final EscapeTimeBackend backend;
+    private final RenderBackendSelection backendSelection;
 
     protected AbstractEscapeTimeRenderer() {
-        this(new CpuEscapeTimeBackend());
+        this(EscapeTimeBackendSelector.selectAuto());
     }
 
-    protected AbstractEscapeTimeRenderer(EscapeTimeBackend backend) {
-        this.backend = backend;
+    protected AbstractEscapeTimeRenderer(RenderBackendSelection backendSelection) {
+        this.backendSelection = backendSelection;
     }
 
     @Override
@@ -34,10 +34,15 @@ public abstract class AbstractEscapeTimeRenderer implements FractalRenderer {
                 offsetY,
                 60 + depth * 40
         );
-        int[] pixels = backend.renderPixels(this, context);
+        int[] pixels = backendSelection.backend().renderPixels(this, context);
         BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
         image.setRGB(0, 0, width, height, pixels, 0, width);
         return image;
+    }
+
+    @Override
+    public String backendDescription() {
+        return backendSelection.describe();
     }
 
     public double mapPlaneX(int pixelX, int width, double zoom, double offsetX) {

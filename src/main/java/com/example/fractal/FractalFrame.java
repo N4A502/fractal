@@ -282,7 +282,8 @@ public class FractalFrame extends JFrame {
     private String buildStatusText(double zoom, double offsetX, double offsetY, int mouseX, int mouseY) {
         String mouse = mouseX >= 0 && mouseY >= 0 ? mouseX + ", " + mouseY : "-, -";
         String complex = buildComplexCoordinateText(mouseX, mouseY, zoom, offsetX, offsetY);
-        return String.format("鼠标: %s%s | 缩放: %.2fx | 偏移: (%.0f, %.0f)", mouse, complex, zoom, offsetX, offsetY);
+        String backend = buildBackendText();
+        return String.format("鼠标: %s%s | 缩放: %.2fx | 偏移: (%.0f, %.0f) | 后端: %s", mouse, complex, zoom, offsetX, offsetY, backend);
     }
 
     private String buildComplexCoordinateText(int mouseX, int mouseY, double zoom, double offsetX, double offsetY) {
@@ -299,5 +300,13 @@ public class FractalFrame extends JFrame {
         double real = renderer.mapPlaneX(mouseX, canvas.getWidth(), zoom, offsetX);
         double imaginary = renderer.mapPlaneY(mouseY, canvas.getWidth(), canvas.getHeight(), zoom, offsetY);
         return String.format(" | 复平面: %.6f %+.6fi", real, imaginary);
+    }
+
+    private String buildBackendText() {
+        FractalDefinition definition = (FractalDefinition) fractalSelector.getSelectedItem();
+        if (definition == null) {
+            return "-";
+        }
+        return definition.renderer().backendDescription();
     }
 }

@@ -16,4 +16,8 @@ public interface FractalRenderer {
         imageGraphics.dispose();
         return rendered;
     }
+
+    default String backendDescription() {
+        return "Java2D";
+    }
 }
