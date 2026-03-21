@@ -2,6 +2,8 @@
 
 一个基于 Java Swing 的分形演示程序，使用 Maven 构建，可直接导入 IntelliJ IDEA。
 
+本程序完全是AI所写
+
 ## 功能
 
 - 图形界面展示分形
