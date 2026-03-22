@@ -1,10 +1,12 @@
 package com.example.fractal.render;
 
+import java.lang.reflect.Method;
+
 public final class EscapeTimeBackendSelector {
 
     private static final EscapeTimeBackend CPU_BACKEND = new CpuEscapeTimeBackend();
     private static volatile RenderBackendSelection cachedSelection;
-    private static volatile LwjglGpuEscapeTimeBackend gpuBackend;
+    private static volatile EscapeTimeBackend gpuBackend;
 
     private EscapeTimeBackendSelector() {
     }
@@ -25,8 +27,9 @@ public final class EscapeTimeBackendSelector {
         }
 
         try {
-            gpuBackend = new LwjglGpuEscapeTimeBackend();
-            String renderer = gpuBackend.initializeAndDescribe();
+            Object backendInstance = createGpuBackendInstance();
+            String renderer = initializeAndDescribe(backendInstance);
+            gpuBackend = (EscapeTimeBackend) backendInstance;
             cachedSelection = new RenderBackendSelection(
                     RenderBackendType.GPU,
                     gpuBackend,
@@ -48,16 +51,32 @@ public final class EscapeTimeBackendSelector {
 
     public static synchronized void shutdown() {
         if (gpuBackend != null) {
-            gpuBackend.shutdown();
+            try {
+                gpuBackend.getClass().getMethod("shutdown").invoke(gpuBackend);
+            } catch (ReflectiveOperationException ignored) {
+                // Best-effort cleanup for optional GPU backend.
+            }
             gpuBackend = null;
         }
         cachedSelection = null;
     }
 
+    private static Object createGpuBackendInstance() throws ReflectiveOperationException {
+        Class<?> backendClass = Class.forName("com.example.fractal.render.LwjglGpuEscapeTimeBackend");
+        return backendClass.getDeclaredConstructor().newInstance();
+    }
+
+    private static String initializeAndDescribe(Object backendInstance) throws ReflectiveOperationException {
+        Method method = backendInstance.getClass().getMethod("initializeAndDescribe");
+        Object result = method.invoke(backendInstance);
+        return result instanceof String ? (String) result : "GPU";
+    }
+
     private static String simplifyReason(Throwable throwable) {
-        String message = throwable.getMessage();
+        Throwable cause = throwable.getCause() != null ? throwable.getCause() : throwable;
+        String message = cause.getMessage();
         if (message == null || message.trim().isEmpty()) {
-            return throwable.getClass().getSimpleName();
+            return cause.getClass().getSimpleName();
         }
         return message;
     }
