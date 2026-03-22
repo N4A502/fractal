@@ -6,8 +6,9 @@ import com.example.fractal.render.FractalRenderService;
 import com.example.fractal.render.RenderRequest;
 import com.example.fractal.render.RenderResult;
 import javafx.animation.PauseTransition;
-import javafx.geometry.Point2D;
 import javafx.application.Platform;
+import javafx.geometry.Point2D;
+import javafx.geometry.Rectangle2D;
 import javafx.geometry.Pos;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
@@ -30,6 +31,7 @@ import javafx.scene.input.ScrollEvent;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
+import javafx.scene.shape.Rectangle;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import javafx.util.Duration;
@@ -55,6 +57,7 @@ public class FractalFxViewport extends StackPane {
 
     private static final double MIN_ZOOM = 0.1;
     private static final int MAX_EXPORT_DIMENSION = 12000;
+    private static final double PREVIEW_OVERSCAN_FACTOR = 1.35;
 
     private final FractalRenderService renderService;
     private final PauseTransition interactionRenderDelay;
@@ -68,6 +71,7 @@ public class FractalFxViewport extends StackPane {
     private FractalViewState viewState;
     private FractalViewState frozenViewState;
     private WritableImage currentImage;
+    private Rectangle2D currentViewportRect;
     private InteractionListener interactionListener;
     private double dragAnchorX = Double.NaN;
     private double dragAnchorY = Double.NaN;
@@ -103,14 +107,22 @@ public class FractalFxViewport extends StackPane {
         renderPane.setMinSize(viewWidth, viewHeight);
         renderPane.setPrefSize(viewWidth, viewHeight);
         renderPane.setMaxSize(viewWidth, viewHeight);
+        Rectangle viewportClip = new Rectangle(viewWidth, viewHeight);
+        viewportClip.setArcWidth(24);
+        viewportClip.setArcHeight(24);
+        viewportClip.widthProperty().bind(renderPane.widthProperty());
+        viewportClip.heightProperty().bind(renderPane.heightProperty());
+        renderPane.setClip(viewportClip);
         StackPane.setAlignment(renderStatusLabel, Pos.TOP_RIGHT);
         renderStatusLabel.setStyle("-fx-background-color: rgba(0,0,0,0.65); -fx-text-fill: #f0f6ff; -fx-font-weight: 700; -fx-background-radius: 12; -fx-padding: 10 14 10 14;");
 
         renderPane.getChildren().addAll(frozenImageView, imageView, overlayCanvas, renderStatusLabel);
         imageView.fitWidthProperty().bind(renderPane.widthProperty());
         imageView.fitHeightProperty().bind(renderPane.heightProperty());
+        imageView.setPreserveRatio(false);
         frozenImageView.fitWidthProperty().bind(renderPane.widthProperty());
         frozenImageView.fitHeightProperty().bind(renderPane.heightProperty());
+        frozenImageView.setPreserveRatio(false);
         overlayCanvas.widthProperty().bind(renderPane.widthProperty());
         overlayCanvas.heightProperty().bind(renderPane.heightProperty());
 
@@ -145,8 +157,8 @@ public class FractalFxViewport extends StackPane {
         notifyViewChanged();
     }
 
-        interactionRenderDelay.stop();
-        clearSelection();
+    public void resetView() {
+        dragAnchorX = Double.NaN;
         dragAnchorY = Double.NaN;
         selectionMode = false;
         clearSelection();
@@ -196,11 +208,6 @@ public class FractalFxViewport extends StackPane {
         return viewHeight;
     }
 
-    public void shutdown() {
-        renderService.shutdown();
-    }
-
-
     public double getCurrentZoom() {
         return viewState.zoom();
     }
@@ -217,6 +224,10 @@ public class FractalFxViewport extends StackPane {
         viewState = new FractalViewState(definition, depth, zoom, offsetX, offsetY);
         scheduleRender();
         notifyViewChanged();
+    }
+
+    public void shutdown() {
+        renderService.shutdown();
     }
 
     private ContextMenu buildContextMenu() {
@@ -255,13 +266,17 @@ public class FractalFxViewport extends StackPane {
             currentImage = null;
             renderInProgress = false;
             imageView.setImage(null);
+            imageView.setViewport(null);
             frozenImageView.setImage(null);
+            frozenImageView.setViewport(null);
+            currentViewportRect = null;
             Platform.runLater(this::refreshOverlay);
             return;
         }
 
         freezeCurrentFrame();
-        RenderRequest request = RenderRequest.of(viewState, viewWidth, viewHeight);
+        PreviewRenderConfig previewConfig = buildPreviewRenderConfig();
+        RenderRequest request = previewConfig.request();
         renderService.renderAsync(request, new FractalRenderService.Listener() {
             @Override
             public void onRenderStarted(RenderRequest ignored) {
@@ -275,7 +290,9 @@ public class FractalFxViewport extends StackPane {
             public void onRenderCompleted(RenderResult result) {
                 Platform.runLater(() -> {
                     currentImage = toWritableImage(result.image());
+                    currentViewportRect = previewConfig.viewportRect();
                     imageView.setImage(currentImage);
+                    imageView.setViewport(currentViewportRect);
                     frozenImageView.setImage(null);
                     frozenImageView.setOpacity(0.0);
                     renderInProgress = false;
@@ -299,12 +316,26 @@ public class FractalFxViewport extends StackPane {
         if (currentImage == null) {
             frozenViewState = null;
             frozenImageView.setImage(null);
+            frozenImageView.setViewport(null);
             return;
         }
-
         frozenViewState = viewState;
         frozenImageView.setImage(currentImage);
+        frozenImageView.setViewport(currentViewportRect);
         frozenImageView.setOpacity(1.0);
+    }
+
+    private PreviewRenderConfig buildPreviewRenderConfig() {
+        int overscanWidth = clampExportDimension((int) Math.ceil(viewWidth * PREVIEW_OVERSCAN_FACTOR));
+        int overscanHeight = clampExportDimension((int) Math.ceil(viewHeight * PREVIEW_OVERSCAN_FACTOR));
+        double zoomScale = (double) viewWidth / overscanWidth;
+        FractalViewState previewState = viewState.withZoomAndOffset(viewState.zoom() * zoomScale, viewState.offsetX(), viewState.offsetY());
+        double viewportX = Math.max(0.0, (overscanWidth - viewWidth) / 2.0);
+        double viewportY = Math.max(0.0, (overscanHeight - viewHeight) / 2.0);
+        return new PreviewRenderConfig(
+                RenderRequest.of(previewState, overscanWidth, overscanHeight),
+                new Rectangle2D(viewportX, viewportY, viewWidth, viewHeight)
+        );
     }
 
     private void bindInteractions() {
@@ -384,6 +415,8 @@ public class FractalFxViewport extends StackPane {
         viewState = viewState.withOffset(nextOffsetX, nextOffsetY);
         dragAnchorX = currentX;
         dragAnchorY = currentY;
+        updateFrozenTransform();
+        refreshOverlay();
         notifyViewChanged();
     }
 
@@ -502,9 +535,10 @@ public class FractalFxViewport extends StackPane {
             graphics.strokeRect(x, y, width, height);
         }
 
-        renderStatusLabel.setText(renderInProgress ? "???..." : "?????" + lastRenderDurationMillis + " ms");
+        renderStatusLabel.setText(renderInProgress ? "渲染中..." : "最近渲染：" + lastRenderDurationMillis + " ms");
         if (!renderInProgress) {
             frozenImageView.setOpacity(0.0);
+            frozenImageView.setViewport(currentViewportRect);
             frozenImageView.setTranslateX(0.0);
             frozenImageView.setTranslateY(0.0);
             frozenImageView.setScaleX(1.0);
@@ -515,7 +549,7 @@ public class FractalFxViewport extends StackPane {
     private void exportImageWithSize(Stage owner, int width, int height, String title) {
         FileChooser chooser = new FileChooser();
         chooser.setTitle(title);
-        chooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("PNG \u56fe\u7247", "*.png"));
+        chooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("PNG 图片", "*.png"));
         chooser.setInitialFileName(buildDefaultFileName(width, height));
         File file = chooser.showSaveDialog(owner);
         if (file == null) {
@@ -529,15 +563,15 @@ public class FractalFxViewport extends StackPane {
             RenderResult exportResult = renderService.renderMeasured(RenderRequest.of(viewState, width, height));
             ImageIO.write(exportResult.image(), "png", file);
         } catch (IOException ex) {
-            showError("\u5bfc\u51fa\u5931\u8d25", ex);
+            showError("导出失败", ex);
         }
     }
 
     private ExportSize promptForExportSize(Stage owner) {
-        List<String> choices = Arrays.asList("\u5f53\u524d\u89c6\u56fe\u5c3a\u5bf8", "2x", "4x", "\u81ea\u5b9a\u4e49");
+        List<String> choices = Arrays.asList("当前视图尺寸", "2x", "4x", "自定义");
         ChoiceDialog<String> dialog = new ChoiceDialog<String>(choices.get(0), choices);
-        dialog.setTitle("\u5bfc\u51fa\u9ad8\u5206\u8fa8\u7387 PNG");
-        dialog.setHeaderText("\u9009\u62e9\u5bfc\u51fa\u5c3a\u5bf8");
+        dialog.setTitle("导出高分辨率 PNG");
+        dialog.setHeaderText("选择导出尺寸");
         dialog.initOwner(owner);
         Optional<String> selected = dialog.showAndWait();
         if (!selected.isPresent()) {
@@ -545,7 +579,7 @@ public class FractalFxViewport extends StackPane {
         }
 
         String choice = selected.get();
-        if (choice.startsWith("\u5f53\u524d")) {
+        if (choice.startsWith("当前")) {
             return new ExportSize(viewWidth, viewHeight);
         }
         if ("2x".equals(choice)) {
@@ -556,17 +590,15 @@ public class FractalFxViewport extends StackPane {
         }
 
         Dialog<ExportSize> customDialog = new Dialog<ExportSize>();
-        customDialog.setTitle("\u81ea\u5b9a\u4e49\u5bfc\u51fa\u5c3a\u5bf8");
+        customDialog.setTitle("自定义导出尺寸");
         customDialog.initOwner(owner);
-        ButtonType okButton = new ButtonType("\u5bfc\u51fa", ButtonBar.ButtonData.OK_DONE);
+        ButtonType okButton = new ButtonType("导出", ButtonBar.ButtonData.OK_DONE);
         customDialog.getDialogPane().getButtonTypes().addAll(okButton, ButtonType.CANCEL);
         Spinner<Integer> widthSpinner = new Spinner<Integer>(1, MAX_EXPORT_DIMENSION, clampExportDimension(viewWidth), 10);
         Spinner<Integer> heightSpinner = new Spinner<Integer>(1, MAX_EXPORT_DIMENSION, clampExportDimension(viewHeight), 10);
-        VBox content = new VBox(10, new Label("\u5bbd\u5ea6"), widthSpinner, new Label("\u9ad8\u5ea6"), heightSpinner);
+        VBox content = new VBox(10, new Label("宽度"), widthSpinner, new Label("高度"), heightSpinner);
         customDialog.getDialogPane().setContent(content);
         customDialog.setResultConverter(button -> button == okButton ? new ExportSize(widthSpinner.getValue(), heightSpinner.getValue()) : null);
-        return customDialog.showAndWait().orElse(null);
-    }
         return customDialog.showAndWait().orElse(null);
     }
 
@@ -653,6 +685,24 @@ public class FractalFxViewport extends StackPane {
         private ExportSize(int width, int height) {
             this.width = width;
             this.height = height;
+        }
+    }
+
+    private static class PreviewRenderConfig {
+        private final RenderRequest request;
+        private final Rectangle2D viewportRect;
+
+        private PreviewRenderConfig(RenderRequest request, Rectangle2D viewportRect) {
+            this.request = request;
+            this.viewportRect = viewportRect;
+        }
+
+        private RenderRequest request() {
+            return request;
+        }
+
+        private Rectangle2D viewportRect() {
+            return viewportRect;
         }
     }
 }
