@@ -315,14 +315,10 @@ public class FractalFxWindow {
     private VBox createControlCard() {
         VBox box = createCardBox();
         box.getChildren().addAll(
-                createSectionLabel("\u7c7b\u578b"),
+                createSectionLabel("类型"),
                 fractalSelector,
-                createSectionLabel("\u9012\u5f52\u5c42\u7ea7 / \u8fed\u4ee3\u6b21\u6570"),
-                depthValueLabel,
-                depthSpinner,
-                createSectionLabel("\u7f29\u653e"),
-                zoomValueLabel,
-                zoomSlider,
+                createInlineSpinnerRow("递归层级 / 迭代次数", depthSpinner, depthValueLabel),
+                createInlineSliderRow("缩放", zoomSlider, zoomValueLabel),
                 resetViewButton
         );
         return box;
@@ -385,6 +381,27 @@ public class FractalFxWindow {
         VBox wrapper = new VBox(6, header, slider);
         HBox row = new HBox(wrapper);
         HBox.setHgrow(wrapper, Priority.ALWAYS);
+        return row;
+    }
+
+    private HBox createInlineSpinnerRow(String title, Spinner<Integer> spinner, Label valueLabel) {
+        Label titleLabel = createSectionLabel(title);
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+        spinner.setPrefWidth(110);
+        spinner.setMaxWidth(110);
+        HBox row = new HBox(8, titleLabel, spacer, valueLabel, spinner);
+        row.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+        return row;
+    }
+
+    private HBox createInlineSliderRow(String title, Slider slider, Label valueLabel) {
+        Label titleLabel = createSectionLabel(title);
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+        HBox.setHgrow(slider, Priority.ALWAYS);
+        HBox row = new HBox(8, titleLabel, spacer, valueLabel, slider);
+        row.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
         return row;
     }
 
