@@ -98,11 +98,18 @@ public class FractalFxViewport extends StackPane {
         this.renderPane = new StackPane();
         this.viewState = new FractalViewState(null, 0, 1.0, 0.0, 0.0);
 
-        setStyle("-fx-background-color: #0c1220; -fx-background-radius: 12;");
+        setStyle("-fx-background-color: white; -fx-background-radius: 12;");
         setMinSize(400, 320);
         setPrefSize(900, 760);
 
-        renderPane.setStyle("-fx-background-color: #080c18; -fx-background-radius: 12;");
+        Rectangle containerClip = new Rectangle();
+        containerClip.setArcWidth(24);
+        containerClip.setArcHeight(24);
+        containerClip.widthProperty().bind(widthProperty());
+        containerClip.heightProperty().bind(heightProperty());
+        setClip(containerClip);
+
+        renderPane.setStyle("-fx-background-color: white; -fx-background-radius: 12;");
         renderPane.setPickOnBounds(true);
         renderPane.setMinSize(viewWidth, viewHeight);
         renderPane.setPrefSize(viewWidth, viewHeight);
@@ -252,7 +259,7 @@ public class FractalFxViewport extends StackPane {
         if (viewWidth <= 0 || viewHeight <= 0 || getWidth() <= 0 || getHeight() <= 0) {
             return;
         }
-        double scale = Math.min(getWidth() / viewWidth, getHeight() / viewHeight);
+        double scale = Math.max(getWidth() / viewWidth, getHeight() / viewHeight);
         if (!Double.isFinite(scale) || scale <= 0.0) {
             scale = 1.0;
         }
