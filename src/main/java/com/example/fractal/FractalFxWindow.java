@@ -203,6 +203,7 @@ public class FractalFxWindow {
         fractalSelector.setVisibleRowCount(8);
         depthSpinner.setEditable(true);
         depthSpinner.setMaxWidth(Double.MAX_VALUE);
+        styleSpinner(depthSpinner);
         zoomSlider.setMaxWidth(Double.MAX_VALUE);
         zoomSlider.setBlockIncrement(10);
         zoomSlider.setMajorTickUnit(100);
@@ -212,11 +213,16 @@ public class FractalFxWindow {
         viewportHeightSpinner.setEditable(true);
         viewportWidthSpinner.setMaxWidth(Double.MAX_VALUE);
         viewportHeightSpinner.setMaxWidth(Double.MAX_VALUE);
+        styleSpinner(viewportWidthSpinner);
+        styleSpinner(viewportHeightSpinner);
         palettePresetSelector.setMaxWidth(Double.MAX_VALUE);
         palettePresetSelector.setPromptText("自定义");
         insideColorPicker.setMaxWidth(Double.MAX_VALUE);
         curveColorPicker.setMaxWidth(Double.MAX_VALUE);
         backgroundColorPicker.setMaxWidth(Double.MAX_VALUE);
+        styleColorPicker(insideColorPicker);
+        styleColorPicker(curveColorPicker);
+        styleColorPicker(backgroundColorPicker);
 
         configureSlider(hueStartSlider, 90, 15);
         configureSlider(hueRangeSlider, 90, 15);
@@ -425,12 +431,9 @@ public class FractalFxWindow {
                 createSliderRow("对比度", contrastSlider, contrastValueLabel),
                 createSliderRow("鲜艳度", vibranceSlider, vibranceValueLabel),
                 createSliderRow("明暗", exposureSlider, exposureValueLabel),
-                insideColorSectionLabel,
-                createInlineColorPickerRow("", insideColorPicker),
-                curveColorSectionLabel,
-                createInlineColorPickerRow("", curveColorPicker),
-                backgroundColorSectionLabel,
-                createInlineColorPickerRow("", backgroundColorPicker),
+                createInlineColorPickerRow(insideColorSectionLabel, insideColorPicker),
+                createInlineColorPickerRow(curveColorSectionLabel, curveColorPicker),
+                createInlineColorPickerRow(backgroundColorSectionLabel, backgroundColorPicker),
                 paletteComboSectionLabel,
                 paletteComboPane,
                 paletteSwatchSectionLabel,
@@ -456,18 +459,12 @@ public class FractalFxWindow {
         return row;
     }
 
-    private HBox createInlineColorPickerRow(String title, ColorPicker picker) {
+    private HBox createInlineColorPickerRow(Label titleLabel, ColorPicker picker) {
         picker.setPrefWidth(116);
         picker.setMaxWidth(116);
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
-        HBox row;
-        if (title == null || title.isEmpty()) {
-            row = new HBox(spacer, picker);
-        } else {
-            Label titleLabel = createSectionLabel(title);
-            row = new HBox(8, titleLabel, spacer, picker);
-        }
+        HBox row = new HBox(8, titleLabel, spacer, picker);
         row.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
         return row;
     }
@@ -1089,6 +1086,15 @@ public class FractalFxWindow {
     private void styleSecondaryButton(Button button) {
         button.setStyle("-fx-background-color: white; -fx-text-fill: #181e2a; -fx-border-color: #dce2eb; -fx-border-radius: 10; -fx-background-radius: 10; -fx-padding: 9 12 9 12;");
         button.setMaxWidth(Double.MAX_VALUE);
+    }
+
+    private void styleSpinner(Spinner<Integer> spinner) {
+        spinner.setStyle("-fx-background-color: white; -fx-border-color: transparent; -fx-focus-color: transparent; -fx-faint-focus-color: transparent;");
+        spinner.getEditor().setStyle("-fx-background-color: white; -fx-border-color: transparent; -fx-focus-color: transparent; -fx-faint-focus-color: transparent; -fx-text-fill: #181e2a;");
+    }
+
+    private void styleColorPicker(ColorPicker picker) {
+        picker.setStyle("-fx-background-color: white; -fx-border-color: transparent; -fx-focus-color: transparent; -fx-faint-focus-color: transparent;");
     }
 
     private void configureSlider(Slider slider, double majorTickUnit, int minorTickCount) {
