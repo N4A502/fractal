@@ -6,6 +6,8 @@ import java.awt.Graphics2D;
 
 public class FractalTreeRenderer implements FractalRenderer {
 
+    private static final double MIN_BRANCH_PIXELS = 1.2;
+
     @Override
     public void render(Graphics2D graphics, int width, int height, int depth, double zoom, double offsetX, double offsetY) {
         EscapeTimeColorSettings settings = EscapeTimeColorManager.getSettings();
@@ -15,7 +17,7 @@ public class FractalTreeRenderer implements FractalRenderer {
     }
 
     private void drawBranch(Graphics2D graphics, EscapeTimeColorSettings settings, double x1, double y1, double angle, double length, int depth, int maxDepth) {
-        if (depth <= 0 || length < 2) {
+        if (depth <= 0 || length < MIN_BRANCH_PIXELS) {
             return;
         }
 

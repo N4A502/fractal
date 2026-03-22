@@ -7,6 +7,8 @@ import java.awt.geom.Path2D;
 
 public class KochSnowflakeRenderer implements FractalRenderer {
 
+    private static final double MIN_SEGMENT_PIXELS = 1.35;
+
     @Override
     public void render(Graphics2D graphics, int width, int height, int depth, double zoom, double offsetX, double offsetY) {
         EscapeTimeColorSettings settings = EscapeTimeColorManager.getSettings();
@@ -35,13 +37,13 @@ public class KochSnowflakeRenderer implements FractalRenderer {
     }
 
     private void drawSegment(Path2D path, Point start, Point end, int depth) {
-        if (depth <= 1) {
+        double dx = end.getX() - start.getX();
+        double dy = end.getY() - start.getY();
+        double length = Math.hypot(dx, dy);
+        if (depth <= 1 || length <= MIN_SEGMENT_PIXELS) {
             path.lineTo(end.getX(), end.getY());
             return;
         }
-
-        double dx = end.getX() - start.getX();
-        double dy = end.getY() - start.getY();
 
         Point p1 = new Point(start.getX() + dx / 3.0, start.getY() + dy / 3.0);
         Point p2 = new Point(start.getX() + dx * 2.0 / 3.0, start.getY() + dy * 2.0 / 3.0);

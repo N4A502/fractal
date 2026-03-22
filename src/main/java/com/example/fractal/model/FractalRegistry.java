@@ -52,7 +52,7 @@ public final class FractalRegistry {
                         "替换规则分形",
                         "通过重复替换线段生成的递归曲线，结构规整清晰。",
                         1,
-                        9,
+                        16,
                         4,
                         100,
                         new KochSnowflakeRenderer()
@@ -62,7 +62,7 @@ public final class FractalRegistry {
                         "递归几何",
                         "多分支递归结构，适合观察层级和角度变化。",
                         1,
-                        14,
+                        20,
                         7,
                         100,
                         new FractalTreeRenderer()
@@ -72,7 +72,7 @@ public final class FractalRegistry {
                         "递归几何",
                         "反复移除九宫格中心区域得到的平面分形。",
                         1,
-                        8,
+                        14,
                         4,
                         100,
                         new SierpinskiCarpetRenderer()

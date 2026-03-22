@@ -254,6 +254,7 @@ public class FractalFxWindow {
                 if (fromWheelAnchor) {
                     setZoomSliderValue(zoom);
                 }
+                updateDepthSpinnerRange(fractalSelector.getValue(), zoom);
                 refreshRuntimeInfo();
             }
 
@@ -485,9 +486,10 @@ public class FractalFxWindow {
         fractalSelector.setValue(definition);
         syncSelection(false);
 
-        int depth = clamp(saved.depth(), definition.minDepth(), definition.maxDepth());
-        depthSpinner.getValueFactory().setValue(depth);
         setZoomSliderValue(saved.zoom());
+        updateDepthSpinnerRange(definition, saved.zoom());
+        int depth = clamp(saved.depth(), definition.minDepth(), currentDepthMax(definition, saved.zoom()));
+        depthSpinner.getValueFactory().setValue(depth);
         viewport.applyState(definition, depth, saved.zoom(), saved.offsetX(), saved.offsetY());
         depthValueLabel.setText(depth + " 层");
         zoomValueLabel.setText(String.format(Locale.US, "%.2f x", saved.zoom()));
@@ -504,12 +506,7 @@ public class FractalFxWindow {
             }
         }
 
-        depthSpinner.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(
-                definition.minDepth(),
-                definition.maxDepth(),
-                Math.max(definition.defaultDepth(), definition.minDepth()),
-                1
-        ));
+        updateDepthSpinnerRange(definition, viewport.getCurrentZoom());
         zoomSlider.setMax(Math.max(400, definition.defaultZoom()));
         updatePaletteSectionState(definition);
         if (resetViewport) {
@@ -532,6 +529,32 @@ public class FractalFxWindow {
         zoomValueLabel.setText(String.format(Locale.US, "%.2f x", zoom));
         viewport.render(definition, depth, zoom);
         refreshRuntimeInfo();
+    }
+
+    private void updateDepthSpinnerRange(FractalDefinition definition, double zoom) {
+        if (definition == null) {
+            return;
+        }
+        int currentValue = depthSpinner.getValueFactory() != null ? depthSpinner.getValue() : definition.defaultDepth();
+        int maxDepth = currentDepthMax(definition, zoom);
+        depthSpinner.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(
+                definition.minDepth(),
+                maxDepth,
+                clamp(currentValue, definition.minDepth(), maxDepth),
+                1
+        ));
+    }
+
+    private int currentDepthMax(FractalDefinition definition, double zoom) {
+        if (definition == null) {
+            return 1;
+        }
+        if (definition.renderer() instanceof AbstractEscapeTimeRenderer) {
+            return definition.maxDepth();
+        }
+        double normalizedZoom = Math.max(1.0, zoom);
+        int bonus = (int) Math.floor(Math.log(normalizedZoom) / Math.log(1.8));
+        return clamp(definition.maxDepth() + Math.max(0, bonus), definition.minDepth(), definition.maxDepth() + 8);
     }
 
     private void resetControls() {
