@@ -35,7 +35,6 @@ import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
-import javafx.scene.text.Font;
 import javafx.stage.Stage;
 
 import java.util.Arrays;
@@ -68,8 +67,6 @@ public class FractalFxWindow {
     private final ColorPicker backgroundColorPicker;
     private final Button resetViewButton;
     private final Button resetPaletteButton;
-    private final Label summaryTitleLabel;
-    private final Label summarySubtitleLabel;
     private final Label depthValueLabel;
     private final Label zoomValueLabel;
     private final Label viewSizeValueLabel;
@@ -113,8 +110,6 @@ public class FractalFxWindow {
         this.backgroundColorPicker = new ColorPicker(Color.rgb(7, 12, 26));
         this.resetViewButton = new Button("重置视图");
         this.resetPaletteButton = new Button("重置配色");
-        this.summaryTitleLabel = new Label("分形浏览器");
-        this.summarySubtitleLabel = new Label("高频控制保留在左侧，导出、保存和说明收纳到菜单栏。");
         this.depthValueLabel = new Label();
         this.zoomValueLabel = new Label();
         this.viewSizeValueLabel = new Label();
@@ -163,9 +158,6 @@ public class FractalFxWindow {
     }
 
     private void configureControls() {
-        summaryTitleLabel.setFont(Font.font("System", 21));
-        summaryTitleLabel.setStyle("-fx-font-weight: 700; -fx-text-fill: #181e2a;");
-        summarySubtitleLabel.setStyle("-fx-text-fill: #5e687a; -fx-font-size: 11px;");
         statusLabel.setStyle("-fx-text-fill: #343d4e; -fx-font-size: 11px;");
         paletteHintLabel.setStyle("-fx-text-fill: #5e687a; -fx-font-size: 10px;");
         viewSizeValueLabel.setStyle("-fx-text-fill: #181e2a; -fx-font-size: 12px; -fx-font-weight: 700;");
@@ -200,8 +192,10 @@ public class FractalFxWindow {
         styleSecondaryButton(resetViewButton);
         styleSecondaryButton(resetPaletteButton);
 
-        paletteSwatchPane.setHgap(6);
-        paletteSwatchPane.setVgap(6);
+        paletteSwatchPane.setHgap(4);
+        paletteSwatchPane.setVgap(0);
+        paletteSwatchPane.setPrefWrapLength(1000);
+        paletteSwatchPane.setMaxWidth(Double.MAX_VALUE);
         paletteSwatchPane.getChildren().setAll(buildPaletteSwatches());
         updatePaletteMetricLabels();
     }
@@ -301,7 +295,6 @@ public class FractalFxWindow {
 
     private ScrollPane buildSidebar() {
         VBox sidebarContent = new VBox(10,
-                createHeaderCard(),
                 createControlCard(),
                 createViewSizeCard(),
                 createPaletteCard()
@@ -317,17 +310,6 @@ public class FractalFxWindow {
         scrollPane.setPadding(Insets.EMPTY);
         BorderPane.setMargin(scrollPane, Insets.EMPTY);
         return scrollPane;
-    }
-
-    private VBox createHeaderCard() {
-        HBox pillRow = new HBox(8, backendPillLabel, renderPillLabel);
-        VBox box = createCardBox();
-        box.setSpacing(8);
-        box.getChildren().addAll(
-                summaryTitleLabel,
-                pillRow
-        );
-        return box;
     }
 
     private VBox createControlCard() {
@@ -459,7 +441,6 @@ public class FractalFxWindow {
             }
         }
 
-        summarySubtitleLabel.setText(definition.name() + " · " + definition.category());
         depthSpinner.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(
                 definition.minDepth(),
                 definition.maxDepth(),
