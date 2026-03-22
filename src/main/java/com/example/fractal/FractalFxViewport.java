@@ -99,8 +99,9 @@ public class FractalFxViewport extends StackPane {
         this.viewState = new FractalViewState(null, 0, 1.0, 0.0, 0.0);
 
         setStyle("-fx-background-color: white; -fx-background-radius: 12;");
-        setMinSize(400, 320);
-        setPrefSize(900, 760);
+        setMinSize(viewWidth, viewHeight);
+        setPrefSize(viewWidth, viewHeight);
+        setMaxSize(viewWidth, viewHeight);
 
         Rectangle containerClip = new Rectangle();
         containerClip.setArcWidth(24);
@@ -137,10 +138,7 @@ public class FractalFxViewport extends StackPane {
         StackPane.setAlignment(renderPane, Pos.CENTER);
 
         interactionRenderDelay.setOnFinished(event -> scheduleRender());
-        widthProperty().addListener((obs, oldValue, newValue) -> updateRenderPaneScale());
-        heightProperty().addListener((obs, oldValue, newValue) -> updateRenderPaneScale());
         bindInteractions();
-        updateRenderPaneScale();
         refreshOverlay();
     }
 
@@ -151,10 +149,12 @@ public class FractalFxViewport extends StackPane {
     public void setViewSize(int width, int height) {
         this.viewWidth = Math.max(320, width);
         this.viewHeight = Math.max(240, height);
+        setMinSize(viewWidth, viewHeight);
+        setPrefSize(viewWidth, viewHeight);
+        setMaxSize(viewWidth, viewHeight);
         renderPane.setMinSize(viewWidth, viewHeight);
         renderPane.setPrefSize(viewWidth, viewHeight);
         renderPane.setMaxSize(viewWidth, viewHeight);
-        updateRenderPaneScale();
         scheduleRender();
     }
 
@@ -253,18 +253,6 @@ public class FractalFxViewport extends StackPane {
 
     private Stage resolveOwner() {
         return getScene() != null && getScene().getWindow() instanceof Stage ? (Stage) getScene().getWindow() : null;
-    }
-
-    private void updateRenderPaneScale() {
-        if (viewWidth <= 0 || viewHeight <= 0 || getWidth() <= 0 || getHeight() <= 0) {
-            return;
-        }
-        double scale = Math.max(getWidth() / viewWidth, getHeight() / viewHeight);
-        if (!Double.isFinite(scale) || scale <= 0.0) {
-            scale = 1.0;
-        }
-        renderPane.setScaleX(scale);
-        renderPane.setScaleY(scale);
     }
 
     private void scheduleRender() {

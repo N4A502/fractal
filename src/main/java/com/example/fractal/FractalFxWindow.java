@@ -457,7 +457,6 @@ public class FractalFxWindow {
         StackPane viewportShell = new StackPane(viewport);
         viewportShell.setPadding(new Insets(0));
         viewportShell.setStyle("-fx-background-color: white;");
-        viewport.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
 
         Region separator = createSeparatorRegion(false);
         HBox row = new HBox(separator, viewportShell);
