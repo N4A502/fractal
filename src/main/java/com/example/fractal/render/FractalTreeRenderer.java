@@ -9,7 +9,7 @@ public class FractalTreeRenderer implements FractalRenderer {
     @Override
     public void render(Graphics2D graphics, int width, int height, int depth, double zoom, double offsetX, double offsetY) {
         EscapeTimeColorSettings settings = EscapeTimeColorManager.getSettings();
-        graphics.setColor(backgroundFrom(settings));
+        graphics.setColor(settings.backgroundColor());
         graphics.fillRect(0, 0, width, height);
         drawBranch(graphics, settings, width / 2.0 + offsetX, height - 60 + offsetY, -Math.PI / 2, Math.min(width, height) * 0.20 * zoom, depth, depth);
     }
@@ -23,9 +23,9 @@ public class FractalTreeRenderer implements FractalRenderer {
         double y2 = y1 + Math.sin(angle) * length;
 
         float progress = maxDepth <= 1 ? 1.0f : (maxDepth - depth) / (float) (maxDepth - 1);
-        float hue = (settings.hueStartDegrees() - progress * settings.hueRangeDegrees()) / 360.0f;
-        float brightness = Math.min(1.0f, settings.brightnessFloor() + settings.brightnessRange() * (0.35f + progress * 0.65f));
-        graphics.setColor(Color.getHSBColor(hue, Math.max(0.18f, settings.saturation()), brightness));
+        Color start = settings.curveColor();
+        Color end = settings.insideColor();
+        graphics.setColor(blend(start, end, progress * 0.45f));
         graphics.setStroke(new BasicStroke(Math.max(1.0f, depth * 0.75f), BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
         graphics.drawLine((int) Math.round(x1), (int) Math.round(y1), (int) Math.round(x2), (int) Math.round(y2));
 
@@ -34,8 +34,11 @@ public class FractalTreeRenderer implements FractalRenderer {
         drawBranch(graphics, settings, x2, y2, angle + Math.PI / 5, nextLength, depth - 1, maxDepth);
     }
 
-    private Color backgroundFrom(EscapeTimeColorSettings settings) {
-        int rgb = settings.insideColorRgb();
-        return new Color(((rgb >> 16) & 0xFF) / 10, ((rgb >> 8) & 0xFF) / 10, (rgb & 0xFF) / 10);
+    private Color blend(Color start, Color end, float ratio) {
+        float clamped = Math.max(0.0f, Math.min(1.0f, ratio));
+        int red = Math.round(start.getRed() + (end.getRed() - start.getRed()) * clamped);
+        int green = Math.round(start.getGreen() + (end.getGreen() - start.getGreen()) * clamped);
+        int blue = Math.round(start.getBlue() + (end.getBlue() - start.getBlue()) * clamped);
+        return new Color(red, green, blue);
     }
 }

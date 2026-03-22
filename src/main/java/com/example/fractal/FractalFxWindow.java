@@ -923,7 +923,6 @@ public class FractalFxWindow {
     private void applyPaletteSwatch(int rgb) {
         Color swatchColor = fromRgb(rgb);
         curveColorPicker.setValue(swatchColor);
-        insideColorPicker.setValue(swatchColor);
         if (isPaletteEnabled()) {
             hueStartSlider.setValue(swatchColor.getHue());
             saturationSlider.setValue(swatchColor.getSaturation() * 100.0);

@@ -10,11 +10,11 @@ public class KochSnowflakeRenderer implements FractalRenderer {
     @Override
     public void render(Graphics2D graphics, int width, int height, int depth, double zoom, double offsetX, double offsetY) {
         EscapeTimeColorSettings settings = EscapeTimeColorManager.getSettings();
-        graphics.setColor(backgroundFrom(settings));
+        graphics.setColor(settings.backgroundColor());
         graphics.fillRect(0, 0, width, height);
 
         graphics.setStroke(new BasicStroke(1.4f));
-        graphics.setColor(accentFrom(settings, 0.72f));
+        graphics.setColor(settings.curveColor());
 
         double size = Math.min(width, height) * 0.38 * zoom;
         double centerX = width / 2.0 + offsetX;
@@ -57,15 +57,6 @@ public class KochSnowflakeRenderer implements FractalRenderer {
         drawSegment(path, p2, end, depth - 1);
     }
 
-    private Color backgroundFrom(EscapeTimeColorSettings settings) {
-        int rgb = settings.insideColorRgb();
-        return new Color(((rgb >> 16) & 0xFF) / 8, ((rgb >> 8) & 0xFF) / 8, (rgb & 0xFF) / 8);
-    }
-
-    private Color accentFrom(EscapeTimeColorSettings settings, float brightness) {
-        float hue = settings.hueStartDegrees() / 360.0f;
-        return Color.getHSBColor(hue, settings.saturation(), brightness);
-    }
 
     private static final class Point {
         private final double x;

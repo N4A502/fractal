@@ -71,12 +71,34 @@ public final class EscapeTimeColorSettings {
         float progress = iterations / (float) maxIterations;
         float hue = wrapHue((hueStartDegrees - progress * hueRangeDegrees) / 360.0f);
         float brightness = clamp(brightnessFloor + brightnessRange * progress, 0.0f, 1.0f);
-        return 0xFF000000 | (Color.HSBtoRGB(hue, saturation, brightness) & 0xFFFFFF);
+        Color base = Color.getHSBColor(hue, saturation, brightness);
+        Color accent = new Color(curveColorRgb);
+        int red = blend(base.getRed(), accent.getRed(), 0.30f);
+        int green = blend(base.getGreen(), accent.getGreen(), 0.30f);
+        int blue = blend(base.getBlue(), accent.getBlue(), 0.30f);
+        return 0xFF000000 | ((red & 0xFF) << 16) | ((green & 0xFF) << 8) | (blue & 0xFF);
+    }
+
+    public Color insideColor() {
+        return new Color(insideColorRgb);
+    }
+
+    public Color curveColor() {
+        return new Color(curveColorRgb);
+    }
+
+    public Color backgroundColor() {
+        return new Color(backgroundColorRgb);
     }
 
     private float wrapHue(float hue) {
         float wrapped = hue % 1.0f;
         return wrapped < 0.0f ? wrapped + 1.0f : wrapped;
+    }
+
+    private static int blend(int start, int end, float ratio) {
+        float clamped = clamp(ratio, 0.0f, 1.0f);
+        return Math.round(start + (end - start) * clamped);
     }
 
     private static float clamp(float value, float min, float max) {

@@ -8,16 +8,16 @@ public class SierpinskiCarpetRenderer implements FractalRenderer {
     @Override
     public void render(Graphics2D graphics, int width, int height, int depth, double zoom, double offsetX, double offsetY) {
         EscapeTimeColorSettings settings = EscapeTimeColorManager.getSettings();
-        graphics.setColor(backgroundFrom(settings));
+        graphics.setColor(settings.backgroundColor());
         graphics.fillRect(0, 0, width, height);
 
         int size = (int) (Math.min(width, height) * 0.7 * Math.min(zoom, 1.4));
         int x = (int) Math.round((width - size) / 2.0 + offsetX);
         int y = (int) Math.round((height - size) / 2.0 + offsetY);
 
-        graphics.setColor(fillFrom(settings));
+        graphics.setColor(settings.curveColor());
         graphics.fillRect(x, y, size, size);
-        graphics.setColor(backgroundFrom(settings));
+        graphics.setColor(settings.insideColor());
         carve(graphics, x, y, size, depth);
     }
 
@@ -39,14 +39,4 @@ public class SierpinskiCarpetRenderer implements FractalRenderer {
         }
     }
 
-    private Color backgroundFrom(EscapeTimeColorSettings settings) {
-        int rgb = settings.insideColorRgb();
-        return new Color(((rgb >> 16) & 0xFF) / 9, ((rgb >> 8) & 0xFF) / 9, (rgb & 0xFF) / 9);
-    }
-
-    private Color fillFrom(EscapeTimeColorSettings settings) {
-        float hue = settings.hueStartDegrees() / 360.0f;
-        float brightness = Math.min(1.0f, settings.brightnessFloor() + settings.brightnessRange() * 0.9f);
-        return Color.getHSBColor(hue, settings.saturation(), brightness);
-    }
 }
