@@ -54,17 +54,25 @@ public class LwjglGpuEscapeTimeBackend implements EscapeTimeBackend {
             "uniform float uCenterY;\n" +
             "uniform float uJuliaCx;\n" +
             "uniform float uJuliaCy;\n" +
-            "vec3 computeColor(int iterations, int maxIterations) {\n" +
-            "  if (iterations >= maxIterations) {\n" +
-            "    return vec3(5.0 / 255.0, 8.0 / 255.0, 18.0 / 255.0);\n" +
-            "  }\n" +
-            "  float hue = float(iterations) / float(maxIterations);\n" +
-            "  return vec3(0.95 - hue * 0.85, 0.85, 0.35 + 0.65 * hue);\n" +
-            "}\n" +
+            "uniform vec3 uInsideColor;\n" +
+            "uniform float uHueStart;\n" +
+            "uniform float uHueRange;\n" +
+            "uniform float uSaturation;\n" +
+            "uniform float uBrightnessFloor;\n" +
+            "uniform float uBrightnessRange;\n" +
             "vec3 hsv2rgb(vec3 c) {\n" +
             "  vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);\n" +
             "  vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);\n" +
             "  return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);\n" +
+            "}\n" +
+            "vec3 computeColor(int iterations, int maxIterations) {\n" +
+            "  if (iterations >= maxIterations) {\n" +
+            "    return uInsideColor;\n" +
+            "  }\n" +
+            "  float progress = float(iterations) / float(maxIterations);\n" +
+            "  float hue = fract((uHueStart - progress * uHueRange) / 360.0);\n" +
+            "  float brightness = clamp(uBrightnessFloor + uBrightnessRange * progress, 0.0, 1.0);\n" +
+            "  return hsv2rgb(vec3(hue, uSaturation, brightness));\n" +
             "}\n" +
             "void main() {\n" +
             "  float px = vUv.x * float(uWidth);\n" +
@@ -93,7 +101,7 @@ public class LwjglGpuEscapeTimeBackend implements EscapeTimeBackend {
             "    x = nextX;\n" +
             "    iteration++;\n" +
             "  }\n" +
-            "  fragColor = vec4(hsv2rgb(computeColor(iteration, uMaxIterations)), 1.0);\n" +
+            "  fragColor = vec4(computeColor(iteration, uMaxIterations), 1.0);\n" +
             "}\n";
 
     private boolean initialized;
@@ -251,6 +259,7 @@ public class LwjglGpuEscapeTimeBackend implements EscapeTimeBackend {
     }
 
     private void setUniforms(AbstractEscapeTimeRenderer renderer, EscapeTimeRenderContext context) {
+        EscapeTimeColorSettings settings = EscapeTimeColorManager.getSettings();
         setInt("uWidth", context.width());
         setInt("uHeight", context.height());
         setInt("uMaxIterations", context.maxIterations());
@@ -263,6 +272,12 @@ public class LwjglGpuEscapeTimeBackend implements EscapeTimeBackend {
         setFloat("uCenterY", renderer.getCenterY());
         setFloat("uJuliaCx", renderer.getJuliaCx());
         setFloat("uJuliaCy", renderer.getJuliaCy());
+        setVec3("uInsideColor", settings.insideColorRgb());
+        setFloat("uHueStart", settings.hueStartDegrees());
+        setFloat("uHueRange", settings.hueRangeDegrees());
+        setFloat("uSaturation", settings.saturation());
+        setFloat("uBrightnessFloor", settings.brightnessFloor());
+        setFloat("uBrightnessRange", settings.brightnessRange());
     }
 
     private int shaderProfileIndex(EscapeTimeShaderProfile profile) {
@@ -281,6 +296,13 @@ public class LwjglGpuEscapeTimeBackend implements EscapeTimeBackend {
 
     private void setFloat(String name, double value) {
         GL20.glUniform1f(GL20.glGetUniformLocation(programId, name), (float) value);
+    }
+
+    private void setVec3(String name, int rgb) {
+        float r = ((rgb >> 16) & 0xFF) / 255.0f;
+        float g = ((rgb >> 8) & 0xFF) / 255.0f;
+        float b = (rgb & 0xFF) / 255.0f;
+        GL20.glUniform3f(GL20.glGetUniformLocation(programId, name), r, g, b);
     }
 
     private int[] convertPixels(ByteBuffer buffer, int width, int height) {

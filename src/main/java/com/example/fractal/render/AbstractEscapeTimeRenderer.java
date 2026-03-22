@@ -1,12 +1,9 @@
 package com.example.fractal.render;
 
-import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 
 public abstract class AbstractEscapeTimeRenderer implements FractalRenderer {
-
-    private static final int INSIDE_COLOR_RGB = new Color(5, 8, 18).getRGB();
 
     private final RenderBackendSelection backendSelection;
 
@@ -74,17 +71,10 @@ public abstract class AbstractEscapeTimeRenderer implements FractalRenderer {
     }
 
     protected final int insideColorRgb() {
-        return INSIDE_COLOR_RGB;
+        return EscapeTimeColorManager.getSettings().insideColorRgb();
     }
 
     protected final int computeColorRgb(int iterations, int maxIterations) {
-        if (iterations >= maxIterations) {
-            return INSIDE_COLOR_RGB;
-        }
-
-        float hue = iterations / (float) maxIterations;
-        float saturation = 0.85f;
-        float brightness = 0.35f + 0.65f * hue;
-        return Color.getHSBColor(0.95f - hue * 0.85f, saturation, brightness).getRGB();
+        return EscapeTimeColorManager.getSettings().computeColorRgb(iterations, maxIterations);
     }
 }
