@@ -31,6 +31,7 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
@@ -42,6 +43,8 @@ import java.util.List;
 import java.util.Locale;
 
 public class FractalFxWindow {
+
+    private static final double SIDEBAR_AUTO_HIDE_THRESHOLD = 1380.0;
 
     private final Stage stage;
     private final BorderPane root;
@@ -83,6 +86,7 @@ public class FractalFxWindow {
     private boolean updatingViewSizeControls;
     private boolean updatingPaletteControls;
     private boolean sidebarVisible = true;
+    private boolean sidebarAutoCollapsed;
 
     public FractalFxWindow(Stage stage) {
         this.stage = stage;
@@ -134,16 +138,16 @@ public class FractalFxWindow {
 
     private void configureStage() {
         root.setStyle("-fx-background-color: #eef2f8;");
-        root.setPadding(new Insets(10));
+        root.setPadding(new Insets(8));
         root.setTop(buildMenuBar());
         sidebar = buildSidebar();
         root.setLeft(sidebar);
-        root.setCenter(buildViewportShell());
-        root.setBottom(buildStatusBar());
+        root.setCenter(buildContentShell());
 
         Scene scene = new Scene(root, 1520, 940, Color.web("#eef2f8"));
         stage.setTitle("分形浏览器");
         stage.setScene(scene);
+        scene.widthProperty().addListener((obs, oldValue, newValue) -> updateResponsiveSidebar(newValue.doubleValue()));
         stage.setMinWidth(1180);
         stage.setMinHeight(760);
         stage.setOnCloseRequest(event -> {
@@ -155,11 +159,11 @@ public class FractalFxWindow {
     }
 
     private void configureControls() {
-        summaryTitleLabel.setFont(Font.font("System", 24));
+        summaryTitleLabel.setFont(Font.font("System", 21));
         summaryTitleLabel.setStyle("-fx-font-weight: 700; -fx-text-fill: #181e2a;");
-        summarySubtitleLabel.setStyle("-fx-text-fill: #5e687a; -fx-font-size: 13px;");
-        statusLabel.setStyle("-fx-text-fill: #343d4e; -fx-font-size: 12px;");
-        paletteHintLabel.setStyle("-fx-text-fill: #5e687a; -fx-font-size: 11px;");
+        summarySubtitleLabel.setStyle("-fx-text-fill: #5e687a; -fx-font-size: 11px;");
+        statusLabel.setStyle("-fx-text-fill: #343d4e; -fx-font-size: 11px;");
+        paletteHintLabel.setStyle("-fx-text-fill: #5e687a; -fx-font-size: 10px;");
         viewSizeValueLabel.setStyle("-fx-text-fill: #181e2a; -fx-font-size: 12px; -fx-font-weight: 700;");
 
         fractalSelector.setMaxWidth(Double.MAX_VALUE);
@@ -190,8 +194,8 @@ public class FractalFxWindow {
         styleSecondaryButton(resetViewButton);
         styleSecondaryButton(resetPaletteButton);
 
-        paletteSwatchPane.setHgap(8);
-        paletteSwatchPane.setVgap(8);
+        paletteSwatchPane.setHgap(6);
+        paletteSwatchPane.setVgap(6);
         paletteSwatchPane.getChildren().setAll(buildPaletteSwatches());
         updatePaletteMetricLabels();
     }
@@ -239,7 +243,7 @@ public class FractalFxWindow {
         });
     }
 
-    private MenuBar buildMenuBar() {
+    private VBox buildMenuBar() {
         Menu fileMenu = new Menu("文件");
         MenuItem saveConfigItem = new MenuItem("保存当前配置");
         saveConfigItem.setOnAction(event -> persistCurrentConfiguration(true));
@@ -280,9 +284,11 @@ public class FractalFxWindow {
         infoMenu.getItems().addAll(fractalInfoItem, shortcutsItem);
 
         MenuBar menuBar = new MenuBar(fileMenu, viewMenu, paletteMenu, infoMenu);
-        menuBar.setStyle("-fx-background-color: white; -fx-border-color: #dce2eb; -fx-border-radius: 16; -fx-background-radius: 16;");
-        BorderPane.setMargin(menuBar, new Insets(0, 0, 10, 0));
-        return menuBar;
+        menuBar.setStyle("-fx-background-color: white; -fx-padding: 2 6 2 6;");
+        Region separator = createSeparatorRegion(true);
+        VBox wrapper = new VBox(menuBar, separator);
+        BorderPane.setMargin(wrapper, Insets.EMPTY);
+        return wrapper;
     }
 
     private ScrollPane buildSidebar() {
@@ -296,22 +302,22 @@ public class FractalFxWindow {
 
         ScrollPane scrollPane = new ScrollPane(sidebarContent);
         scrollPane.setFitToWidth(true);
-        scrollPane.setPrefViewportWidth(308);
-        scrollPane.setMinViewportWidth(308);
-        scrollPane.setMaxWidth(308);
+        scrollPane.setPrefViewportWidth(286);
+        scrollPane.setMinViewportWidth(286);
+        scrollPane.setMaxWidth(286);
         scrollPane.setStyle("-fx-background-color: transparent; -fx-background: transparent;");
         scrollPane.setPadding(Insets.EMPTY);
-        BorderPane.setMargin(scrollPane, new Insets(0, 10, 0, 0));
+        BorderPane.setMargin(scrollPane, Insets.EMPTY);
         return scrollPane;
     }
 
     private VBox createHeaderCard() {
+        HBox pillRow = new HBox(8, backendPillLabel, renderPillLabel);
         VBox box = createCardBox();
+        box.setSpacing(8);
         box.getChildren().addAll(
                 summaryTitleLabel,
-                summarySubtitleLabel,
-                backendPillLabel,
-                renderPillLabel
+                pillRow
         );
         return box;
     }
@@ -394,20 +400,16 @@ public class FractalFxWindow {
         return row;
     }
 
-    private StackPane buildViewportShell() {
-        StackPane shell = new StackPane(viewport);
-        shell.setPadding(new Insets(8));
-        shell.setStyle(cardStyle());
+    private StackPane buildContentShell() {
+        StackPane viewportShell = new StackPane(viewport);
+        viewportShell.setPadding(new Insets(0));
+        viewportShell.setStyle("-fx-background-color: white;");
         viewport.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
-        return shell;
-    }
 
-    private VBox buildStatusBar() {
-        VBox wrapper = new VBox(statusLabel);
-        wrapper.setPadding(new Insets(8, 10, 8, 10));
-        wrapper.setStyle(cardStyle());
-        BorderPane.setMargin(wrapper, new Insets(10, 0, 0, 0));
-        return wrapper;
+        Region separator = createSeparatorRegion(false);
+        HBox row = new HBox(separator, viewportShell);
+        HBox.setHgrow(viewportShell, Priority.ALWAYS);
+        return new StackPane(row);
     }
 
     private void restoreSavedConfiguration() {
@@ -416,7 +418,7 @@ public class FractalFxWindow {
         stage.setHeight(Math.max(stage.getMinHeight(), saved.stageHeight()));
         stage.setMaximized(saved.stageMaximized());
         sidebarVisible = saved.sidebarVisible();
-        root.setLeft(sidebarVisible ? sidebar : null);
+        updateResponsiveSidebar(stage.getWidth());
 
         viewportWidthSpinner.getValueFactory().setValue(clamp(saved.viewWidth(), 320, 4096));
         viewportHeightSpinner.getValueFactory().setValue(clamp(saved.viewHeight(), 240, 4096));
@@ -811,7 +813,7 @@ public class FractalFxWindow {
 
     private VBox createCardBox() {
         VBox box = new VBox(10);
-        box.setPadding(new Insets(12));
+        box.setPadding(new Insets(10));
         box.setStyle(cardStyle());
         box.setFillWidth(true);
         return box;
@@ -862,17 +864,41 @@ public class FractalFxWindow {
         slider.setShowTickLabels(false);
     }
 
+    private Region createSeparatorRegion(boolean horizontal) {
+        Region separator = new Region();
+        separator.setStyle("-fx-background-color: #dce2eb;");
+        if (horizontal) {
+            separator.setMinHeight(1);
+            separator.setPrefHeight(1);
+            separator.setMaxHeight(1);
+        } else {
+            separator.setMinWidth(1);
+            separator.setPrefWidth(1);
+            separator.setMaxWidth(1);
+        }
+        return separator;
+    }
+
     private String cardStyle() {
-        return "-fx-background-color: white; -fx-border-color: #dce2eb; -fx-border-radius: 16; -fx-background-radius: 16;";
+        return "-fx-background-color: white;";
     }
 
     private String pillStyle(String background, String foreground) {
-        return "-fx-background-color: " + background + "; -fx-text-fill: " + foreground + "; -fx-font-size: 12px; -fx-font-weight: 700; -fx-background-radius: 999; -fx-padding: 8 12 8 12;";
+        return "-fx-background-color: " + background + "; -fx-text-fill: " + foreground + "; -fx-font-size: 11px; -fx-font-weight: 700; -fx-background-radius: 999; -fx-padding: 6 10 6 10;";
     }
 
     private void toggleSidebar() {
         sidebarVisible = !sidebarVisible;
-        root.setLeft(sidebarVisible ? sidebar : null);
+        applySidebarVisibility();
+    }
+
+    private void updateResponsiveSidebar(double stageWidth) {
+        sidebarAutoCollapsed = stageWidth > 0.0 && stageWidth < SIDEBAR_AUTO_HIDE_THRESHOLD;
+        applySidebarVisibility();
+    }
+
+    private void applySidebarVisibility() {
+        root.setLeft(sidebarVisible && !sidebarAutoCollapsed ? sidebar : null);
     }
 
     private int toRgb(Color color) {
