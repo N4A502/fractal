@@ -315,17 +315,15 @@ public class FractalFxWindow {
     private VBox createControlCard() {
         VBox box = createCardBox();
         box.getChildren().addAll(
-                createCardTitle("分形"),
-                createSectionLabel("分形类型"),
+                createSectionLabel("\u7c7b\u578b"),
                 fractalSelector,
-                createSectionLabel("递归层级 / 迭代次数"),
+                createSectionLabel("\u9012\u5f52\u5c42\u7ea7 / \u8fed\u4ee3\u6b21\u6570"),
                 depthValueLabel,
                 depthSpinner,
-                createSectionLabel("缩放"),
+                createSectionLabel("\u7f29\u653e"),
                 zoomValueLabel,
                 zoomSlider,
-                resetViewButton,
-                wrapLabel("分形说明和快捷帮助已收纳到菜单栏，左侧只保留高频控制。")
+                resetViewButton
         );
         return box;
     }
@@ -766,14 +764,14 @@ public class FractalFxWindow {
 
     private List<Button> buildPaletteSwatches() {
         return Arrays.asList(
-                createSwatchButton("深夜蓝", 0x050812),
-                createSwatchButton("暖白", 0xFAFAFA),
-                createSwatchButton("炭黑", 0x040404),
-                createSwatchButton("海洋蓝", 0x0D3B66),
-                createSwatchButton("珊瑚橙", 0xF25F5C),
-                createSwatchButton("松石绿", 0x2EC4B6),
-                createSwatchButton("琥珀", 0xFFBF69),
-                createSwatchButton("薰衣草灰", 0x6C7A89)
+                createSwatchButton("\u6df1\u591c\u84dd", 0x050812),
+                createSwatchButton("\u6696\u767d", 0xFAFAFA),
+                createSwatchButton("\u70ad\u9ed1", 0x040404),
+                createSwatchButton("\u6d77\u6d0b\u84dd", 0x0D3B66),
+                createSwatchButton("\u73ca\u745a\u6a59", 0xF25F5C),
+                createSwatchButton("\u677e\u77f3\u7eff", 0x2EC4B6),
+                createSwatchButton("\u7425\u73c0\u9ec4", 0xFFBF69),
+                createSwatchButton("\u85b0\u8863\u8349\u7070", 0x6C7A89)
         );
     }
 
@@ -784,11 +782,22 @@ public class FractalFxWindow {
         swatch.setMaxSize(28, 28);
         swatch.setTooltip(new Tooltip(label));
         swatch.setStyle("-fx-background-color: #" + String.format("%06X", rgb) + "; -fx-background-radius: 999; -fx-border-color: #dce2eb; -fx-border-radius: 999;");
-        swatch.setOnAction(event -> {
-            curveColorPicker.setValue(fromRgb(rgb));
-            applyPaletteControls(true);
-        });
+        swatch.setOnAction(event -> applyPaletteSwatch(rgb));
         return swatch;
+    }
+
+    private void applyPaletteSwatch(int rgb) {
+        Color swatchColor = fromRgb(rgb);
+        curveColorPicker.setValue(swatchColor);
+        insideColorPicker.setValue(swatchColor);
+        if (isPaletteEnabled()) {
+            hueStartSlider.setValue(swatchColor.getHue());
+            saturationSlider.setValue(swatchColor.getSaturation() * 100.0);
+            double brightness = swatchColor.getBrightness() * 100.0;
+            brightnessFloorSlider.setValue(Math.max(8.0, Math.min(brightnessFloorSlider.getValue(), brightness)));
+            brightnessRangeSlider.setValue(Math.max(18.0, brightnessRangeSlider.getValue()));
+        }
+        applyPaletteControls(true);
     }
 
     private FractalDefinition findDefinition(String name) {
