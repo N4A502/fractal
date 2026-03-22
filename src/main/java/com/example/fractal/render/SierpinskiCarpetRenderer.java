@@ -24,7 +24,7 @@ public class SierpinskiCarpetRenderer implements FractalRenderer {
     }
 
     private void carve(Graphics2D graphics, double x, double y, double size, int depth) {
-        if (depth <= 0 || size < MIN_CELL_PIXELS) {
+        if (RenderCancellation.isCancelledCurrentThread() || depth <= 0 || size < MIN_CELL_PIXELS) {
             return;
         }
 

@@ -20,7 +20,7 @@ public class CpuEscapeTimeBackend implements EscapeTimeBackend {
         int tileCount = tilesX * tilesY;
 
         IntStream.range(0, tileCount).parallel().forEach(tileIndex -> {
-            if (Thread.currentThread().isInterrupted()) {
+            if (RenderCancellation.isCancelled(context.requestSequence())) {
                 return;
             }
 
@@ -32,13 +32,13 @@ public class CpuEscapeTimeBackend implements EscapeTimeBackend {
             int endY = Math.min(startY + tileSize, height);
 
             for (int py = startY; py < endY; py++) {
-                if (((py - startY) & 15) == 0 && Thread.currentThread().isInterrupted()) {
+                if (((py - startY) & 15) == 0 && RenderCancellation.isCancelled(context.requestSequence())) {
                     return;
                 }
 
                 int rowOffset = py * width;
                 for (int px = startX; px < endX; px++) {
-                    if (((px - startX) & 63) == 0 && Thread.currentThread().isInterrupted()) {
+                    if (((px - startX) & 63) == 0 && RenderCancellation.isCancelled(context.requestSequence())) {
                         return;
                     }
 

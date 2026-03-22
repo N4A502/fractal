@@ -29,8 +29,11 @@ public class FractalRenderService {
         cancelActiveRender();
 
         final long requestSequence = ++renderSequence;
+        RenderCancellation.activate(requestSequence);
         listener.onRenderStarted(request);
         renderFuture = renderExecutor.submit(() -> {
+            RenderCancellation.bindToCurrentThread(requestSequence);
+            RenderCancellationSequence.bind(requestSequence);
             try {
                 RenderResult result = renderMeasured(request);
                 if (!Thread.currentThread().isInterrupted() && requestSequence == renderSequence) {
@@ -44,6 +47,9 @@ public class FractalRenderService {
                     Thread.currentThread().interrupt();
                 }
                 listener.onRenderFailed(request, ex);
+            } finally {
+                RenderCancellation.clearCurrentThread();
+                RenderCancellationSequence.clear();
             }
         });
     }

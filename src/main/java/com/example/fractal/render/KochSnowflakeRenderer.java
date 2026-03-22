@@ -37,6 +37,9 @@ public class KochSnowflakeRenderer implements FractalRenderer {
     }
 
     private void drawSegment(Path2D path, Point start, Point end, int depth) {
+        if (RenderCancellation.isCancelledCurrentThread()) {
+            return;
+        }
         double dx = end.getX() - start.getX();
         double dy = end.getY() - start.getY();
         double length = Math.hypot(dx, dy);

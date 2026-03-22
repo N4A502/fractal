@@ -9,8 +9,9 @@ public class EscapeTimeRenderContext {
     private final double offsetX;
     private final double offsetY;
     private final int maxIterations;
+    private final long requestSequence;
 
-    public EscapeTimeRenderContext(int width, int height, int depth, double zoom, double offsetX, double offsetY, int maxIterations) {
+    public EscapeTimeRenderContext(int width, int height, int depth, double zoom, double offsetX, double offsetY, int maxIterations, long requestSequence) {
         this.width = width;
         this.height = height;
         this.depth = depth;
@@ -18,6 +19,7 @@ public class EscapeTimeRenderContext {
         this.offsetX = offsetX;
         this.offsetY = offsetY;
         this.maxIterations = maxIterations;
+        this.requestSequence = requestSequence;
     }
 
     public int width() {
@@ -46,5 +48,9 @@ public class EscapeTimeRenderContext {
 
     public int maxIterations() {
         return maxIterations;
+    }
+
+    public long requestSequence() {
+        return requestSequence;
     }
 }

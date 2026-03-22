@@ -122,6 +122,9 @@ public class LwjglGpuEscapeTimeBackend implements EscapeTimeBackend {
 
     @Override
     public synchronized int[] renderPixels(AbstractEscapeTimeRenderer renderer, EscapeTimeRenderContext context) {
+        if (RenderCancellation.isCancelled(context.requestSequence())) {
+            throw new IllegalStateException("Render cancelled");
+        }
         ensureInitialized();
         glfwMakeContextCurrent(window);
         GL.setCapabilities(GL.createCapabilities());
@@ -137,6 +140,9 @@ public class LwjglGpuEscapeTimeBackend implements EscapeTimeBackend {
         GL30.glBindVertexArray(vaoId);
         GL11.glDrawArrays(GL11.GL_TRIANGLES, 0, 3);
         GL30.glBindVertexArray(0);
+        if (RenderCancellation.isCancelled(context.requestSequence())) {
+            throw new IllegalStateException("Render cancelled");
+        }
 
         ByteBuffer byteBuffer = BufferUtils.createByteBuffer(context.width() * context.height() * 4);
         GL11.glReadPixels(0, 0, context.width(), context.height(), GL11.GL_RGBA, GL11.GL_UNSIGNED_BYTE, byteBuffer);

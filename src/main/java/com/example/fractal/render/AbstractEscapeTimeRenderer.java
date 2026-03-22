@@ -29,7 +29,8 @@ public abstract class AbstractEscapeTimeRenderer implements FractalRenderer {
                 zoom,
                 offsetX,
                 offsetY,
-                60 + depth * 40
+                60 + depth * 40,
+                RenderCancellation.isCancelledCurrentThread() ? -1L : RenderCancellationSequence.current()
         );
         int[] pixels = backendSelection.backend().renderPixels(this, context);
         BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);

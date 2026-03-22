@@ -17,7 +17,7 @@ public class FractalTreeRenderer implements FractalRenderer {
     }
 
     private void drawBranch(Graphics2D graphics, EscapeTimeColorSettings settings, double x1, double y1, double angle, double length, int depth, int maxDepth) {
-        if (depth <= 0 || length < MIN_BRANCH_PIXELS) {
+        if (RenderCancellation.isCancelledCurrentThread() || depth <= 0 || length < MIN_BRANCH_PIXELS) {
             return;
         }
 
