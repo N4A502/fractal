@@ -100,13 +100,13 @@ public class FractalFxWindow {
         this.brightnessFloorSlider = new Slider(0, 100, 35);
         this.brightnessRangeSlider = new Slider(0, 100, 65);
         this.insideColorPicker = new ColorPicker(Color.rgb(5, 8, 18));
-        this.exportButton = new Button("??????");
-        this.exportCurrentButton = new Button("??????");
-        this.resetViewButton = new Button("????");
-        this.saveConfigButton = new Button("??????");
+        this.exportButton = new Button("高分辨率导出");
+        this.exportCurrentButton = new Button("导出当前视图");
+        this.resetViewButton = new Button("重置视图");
+        this.saveConfigButton = new Button("保存当前配置");
         this.sidebarToggleButton = new Button();
-        this.summaryTitleLabel = new Label("?????");
-        this.summarySubtitleLabel = new Label("?????????? CPU/GPU ????? JavaFX ????");
+        this.summaryTitleLabel = new Label("分形浏览器");
+        this.summarySubtitleLabel = new Label("支持视图尺寸、调色和 CPU/GPU 自动切换的 JavaFX 工作区。");
         this.categoryValueLabel = new Label();
         this.descriptionValueLabel = new Label();
         this.depthValueLabel = new Label();
@@ -114,8 +114,8 @@ public class FractalFxWindow {
         this.viewSizeValueLabel = new Label();
         this.backendPillLabel = createPillLabel();
         this.renderPillLabel = createPillLabel();
-        this.paletteHintLabel = new Label("????????????????\n?????????????");
-        this.statusLabel = new Label("???-, - | ???1.00x | ???(0, 0)");
+        this.paletteHintLabel = new Label("调色参数仅对逃逸时间类分形生效?\n可使用下方调色盘快速选色?");
+        this.statusLabel = new Label("光标：-, - | 缩放：1.00x | 偏移：(0, 0)");
         this.paletteSwatchPane = new FlowPane();
 
         configureStage();
@@ -139,7 +139,7 @@ public class FractalFxWindow {
         root.setBottom(buildStatusBar());
 
         Scene scene = new Scene(root, 1520, 940, Color.web("#eef2f8"));
-        stage.setTitle("?????");
+        stage.setTitle("分形浏览器");
         stage.setScene(scene);
         stage.setMinWidth(1180);
         stage.setMinHeight(760);
@@ -172,7 +172,7 @@ public class FractalFxWindow {
         viewportWidthSpinner.setMaxWidth(Double.MAX_VALUE);
         viewportHeightSpinner.setMaxWidth(Double.MAX_VALUE);
         palettePresetSelector.setMaxWidth(Double.MAX_VALUE);
-        palettePresetSelector.setPromptText("???");
+        palettePresetSelector.setPromptText("自定义");
         insideColorPicker.setMaxWidth(Double.MAX_VALUE);
 
         configureSlider(hueStartSlider);
@@ -243,20 +243,20 @@ public class FractalFxWindow {
 
     private MenuBar buildMenuBar() {
         Menu fileMenu = new Menu("??");
-        MenuItem saveConfigItem = new MenuItem("??????");
+        MenuItem saveConfigItem = new MenuItem("保存当前配置");
         saveConfigItem.setOnAction(event -> persistCurrentConfiguration(true));
-        MenuItem exportCurrentItem = new MenuItem("??????");
+        MenuItem exportCurrentItem = new MenuItem("导出当前视图");
         exportCurrentItem.setOnAction(event -> viewport.exportCurrentView(stage));
-        MenuItem exportHighResItem = new MenuItem("?????? PNG");
+        MenuItem exportHighResItem = new MenuItem("导出高分辨率 PNG");
         exportHighResItem.setOnAction(event -> viewport.exportHighResolutionView(stage));
         MenuItem exitItem = new MenuItem("??");
         exitItem.setOnAction(event -> stage.close());
         fileMenu.getItems().addAll(saveConfigItem, new SeparatorMenuItem(), exportCurrentItem, exportHighResItem, new SeparatorMenuItem(), exitItem);
 
         Menu viewMenu = new Menu("??");
-        MenuItem toggleControlsItem = new MenuItem("?? / ?????");
+        MenuItem toggleControlsItem = new MenuItem("显示 / 隐藏控制栏");
         toggleControlsItem.setOnAction(event -> toggleSidebar());
-        MenuItem resetViewItem = new MenuItem("????");
+        MenuItem resetViewItem = new MenuItem("重置视图");
         resetViewItem.setOnAction(event -> resetControls());
         viewMenu.getItems().addAll(toggleControlsItem, resetViewItem);
 
@@ -312,14 +312,14 @@ public class FractalFxWindow {
     private VBox createControlCard() {
         VBox box = createCardBox();
         box.getChildren().addAll(
-                createCardTitle("????"),
-                createSectionLabel("????"),
+                createCardTitle("基础控制"),
+                createSectionLabel("分形类型"),
                 fractalSelector,
                 createSectionLabel("??"),
                 categoryValueLabel,
                 createSectionLabel("??"),
                 descriptionValueLabel,
-                createSectionLabel("???? / ????"),
+                createSectionLabel("递归层级 / 迭代次数"),
                 depthValueLabel,
                 depthSpinner,
                 createSectionLabel("??"),
@@ -332,7 +332,7 @@ public class FractalFxWindow {
     private VBox createViewSizeCard() {
         VBox box = createCardBox();
         box.getChildren().addAll(
-                createCardTitle("??????"),
+                createCardTitle("渲染视图尺寸"),
                 createSectionLabel("??"),
                 viewSizePresetSelector,
                 createSectionLabel("??"),
@@ -340,7 +340,7 @@ public class FractalFxWindow {
                 createSectionLabel("??"),
                 viewportHeightSpinner,
                 viewSizeValueLabel,
-                wrapLabel("?????????????????????????????????")
+                wrapLabel("视图会保持当前宽高比随窗口整体缩放。默认导出尺寸使用当前视图大小。"),
         );
         return box;
     }
@@ -349,21 +349,21 @@ public class FractalFxWindow {
         VBox box = createCardBox();
         box.getChildren().addAll(
                 createCardTitle("??"),
-                createSectionLabel("????"),
+                createSectionLabel("快速风格"),
                 palettePresetSelector,
-                createSectionLabel("???"),
+                createSectionLabel("调色盘"),
                 paletteSwatchPane,
-                createSectionLabel("????"),
+                createSectionLabel("色相起点"),
                 hueStartSlider,
-                createSectionLabel("????"),
+                createSectionLabel("色相范围"),
                 hueRangeSlider,
-                createSectionLabel("???"),
+                createSectionLabel("饱和度"),
                 saturationSlider,
-                createSectionLabel("????"),
+                createSectionLabel("亮度下限"),
                 brightnessFloorSlider,
-                createSectionLabel("????"),
+                createSectionLabel("亮度范围"),
                 brightnessRangeSlider,
-                createSectionLabel("????"),
+                createSectionLabel("内部颜色"),
                 insideColorPicker,
                 paletteHintLabel
         );
@@ -379,7 +379,7 @@ public class FractalFxWindow {
                 exportButton,
                 exportCurrentButton,
                 resetViewButton,
-                wrapLabel("????????????????????????????? 2x?4x ???????")
+                wrapLabel("高分辨率导出会按当前视图配置重新渲染；也可以在导出时切换到 2x、4x 或自定义尺寸。"),
         );
         return box;
     }
@@ -387,8 +387,8 @@ public class FractalFxWindow {
     private VBox createInfoStrip() {
         VBox box = createCardBox();
         box.getChildren().addAll(
-                createCardTitle("????"),
-                wrapLabel("??????????Shift + ?????????????????")
+                createCardTitle("快捷操作"),
+                wrapLabel("滚轮缩放，拖拽平移，Shift + 拖拽框选缩放，双击重置，右键导出。")
         );
         return box;
     }
@@ -527,7 +527,7 @@ public class FractalFxWindow {
         } finally {
             updatingViewSizeControls = false;
         }
-        viewSizeValueLabel.setText(String.format(Locale.US, "?????%d x %d (%.2f:1)", width, height, width / (double) height));
+        viewSizeValueLabel.setText(String.format(Locale.US, "当前视图：%d x %d (%.2f:1)", width, height, width / (double) height));
         viewport.setViewSize(width, height);
         refreshRuntimeInfo();
     }
@@ -610,8 +610,8 @@ public class FractalFxWindow {
         insideColorPicker.setDisable(!enabled);
         paletteSwatchPane.setDisable(!enabled);
         paletteHintLabel.setText(enabled
-                ? "???????????????????\n???????????????"
-                : "????????????????Julia ???????");
+                ? "调色参数会立即作用到当前逃逸时间分形?\n下方调色盘可快速切换内部颜色?"
+                : "调色功能当前仅适用于曼德勃罗集、Julia 集和燃烧之船。");
     }
 
     private void setZoomSliderValue(double zoom) {
@@ -634,12 +634,12 @@ public class FractalFxWindow {
     private void refreshRuntimeInfo() {
         String backendText = viewport.getBackendDescription();
         boolean rendering = viewport.isRenderInProgress();
-        backendPillLabel.setText("?????" + backendText);
+        backendPillLabel.setText("渲染后端：" + backendText);
         if (rendering) {
-            renderPillLabel.setText("???...");
+            renderPillLabel.setText("渲染中...");
             renderPillLabel.setStyle(pillStyle("#e3edff", "#1f57c3"));
         } else {
-            renderPillLabel.setText("?????" + viewport.getLastRenderDurationMillis() + " ms");
+            renderPillLabel.setText("最近渲染：" + viewport.getLastRenderDurationMillis() + " ms");
             renderPillLabel.setStyle(pillStyle("#e3f7ef", "#148c5c"));
         }
     }
@@ -650,7 +650,7 @@ public class FractalFxWindow {
                 : "-, -";
         String complex = buildComplexCoordinateText(mouseX, mouseY, zoom, offsetX, offsetY);
         return String.format(Locale.US,
-                "???%s%s | ???%.2fx | ???(%.0f, %.0f) | ???%d x %d | ???%s",
+                "光标：%s%s | 缩放：%.2fx | 偏移：(%.0f, %.0f) | 视图：%d x %d | 后端：%s",
                 mouse,
                 complex,
                 zoom,
@@ -680,7 +680,7 @@ public class FractalFxWindow {
                 zoom,
                 offsetY
         );
-        return String.format(Locale.US, " | ????%.6f %+.6fi", real, imaginary);
+        return String.format(Locale.US, " | 复平面：%.6f %+.6fi", real, imaginary);
     }
 
     private void persistCurrentConfiguration(boolean showFeedback) {
@@ -704,24 +704,24 @@ public class FractalFxWindow {
         );
         preferences.save(savedConfiguration);
         if (showFeedback) {
-            Alert alert = new Alert(Alert.AlertType.INFORMATION, "??????????????????", ButtonType.OK);
+            Alert alert = new Alert(Alert.AlertType.INFORMATION, "当前配置已保存，下次启动会自动恢复。", ButtonType.OK);
             alert.initOwner(stage);
-            alert.setTitle("????");
-            alert.setHeaderText("????");
+            alert.setTitle("保存配置");
+            alert.setHeaderText("保存配置");
             alert.showAndWait();
         }
     }
 
     private List<Button> buildPaletteSwatches() {
         return Arrays.asList(
-                createSwatchButton("???", 0x050812),
+                createSwatchButton("深夜蓝", 0x050812),
                 createSwatchButton("??", 0xFAFAFA),
                 createSwatchButton("??", 0x040404),
-                createSwatchButton("???", 0x0D3B66),
-                createSwatchButton("???", 0xF25F5C),
-                createSwatchButton("???", 0x2EC4B6),
+                createSwatchButton("海洋蓝", 0x0D3B66),
+                createSwatchButton("珊瑚橙", 0xF25F5C),
+                createSwatchButton("松石绿", 0x2EC4B6),
                 createSwatchButton("??", 0xFFBF69),
-                createSwatchButton("????", 0x6C7A89)
+                createSwatchButton("薀衣草灰", 0x6C7A89)
         );
     }
 
@@ -817,7 +817,7 @@ public class FractalFxWindow {
     }
 
     private void refreshSidebarToggleLabel() {
-        sidebarToggleButton.setText(sidebarVisible ? "?????" : "?????");
+        sidebarToggleButton.setText(sidebarVisible ? "隐藏控制栏" : "显示控制栏");
     }
 
     private int toRgb(Color color) {
@@ -837,9 +837,9 @@ public class FractalFxWindow {
     private List<ViewSizePreset> createViewSizePresets() {
         return Arrays.asList(
                 new ViewSizePreset("HD 1280 x 720", 1280, 720, false),
-                new ViewSizePreset("??? 1024 x 1024", 1024, 1024, false),
+                new ViewSizePreset("正方形 1024 x 1024", 1024, 1024, false),
                 new ViewSizePreset("?? 1080 x 1350", 1080, 1350, false),
-                new ViewSizePreset("??? 1920 x 1080", 1920, 1080, false),
+                new ViewSizePreset("全高清 1920 x 1080", 1920, 1080, false),
                 new ViewSizePreset("4K UHD 3840 x 2160", 3840, 2160, false),
                 ViewSizePreset.custom(1280, 720)
         );
@@ -859,7 +859,7 @@ public class FractalFxWindow {
         }
 
         private static ViewSizePreset custom(int width, int height) {
-            return new ViewSizePreset("???", width, height, true);
+            return new ViewSizePreset("自定义", width, height, true);
         }
 
         private int width() {
@@ -876,7 +876,7 @@ public class FractalFxWindow {
 
         @Override
         public String toString() {
-            return custom ? String.format(Locale.US, "??? (%d x %d)", width, height) : label;
+            return custom ? String.format(Locale.US, "自定义 (%d x %d)", width, height) : label;
         }
     }
 }

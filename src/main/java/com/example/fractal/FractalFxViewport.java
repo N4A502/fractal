@@ -159,7 +159,7 @@ public class FractalFxViewport extends StackPane {
         if (!viewState.hasDefinition()) {
             return;
         }
-        exportImageWithSize(owner, viewWidth, viewHeight, "??????");
+        exportImageWithSize(owner, viewWidth, viewHeight, "导出当前视图");
     }
 
     public void exportHighResolutionView(Stage owner) {
@@ -168,7 +168,7 @@ public class FractalFxViewport extends StackPane {
         }
         ExportSize exportSize = promptForExportSize(owner);
         if (exportSize != null) {
-            exportImageWithSize(owner, exportSize.width, exportSize.height, "?????? PNG");
+            exportImageWithSize(owner, exportSize.width, exportSize.height, "导出高分辨率 PNG");
         }
     }
 
@@ -219,11 +219,11 @@ public class FractalFxViewport extends StackPane {
     }
 
     private ContextMenu buildContextMenu() {
-        MenuItem exportCurrent = new MenuItem("??????");
+        MenuItem exportCurrent = new MenuItem("导出当前视图");
         exportCurrent.setOnAction(event -> exportCurrentView(resolveOwner()));
-        MenuItem exportHighRes = new MenuItem("?????? PNG");
+        MenuItem exportHighRes = new MenuItem("导出高分辨率 PNG");
         exportHighRes.setOnAction(event -> exportHighResolutionView(resolveOwner()));
-        MenuItem reset = new MenuItem("????");
+        MenuItem reset = new MenuItem("重置视图");
         reset.setOnAction(event -> {
             if (interactionListener != null) {
                 interactionListener.onResetRequested();
@@ -288,7 +288,7 @@ public class FractalFxViewport extends StackPane {
                 Platform.runLater(() -> {
                     renderInProgress = false;
                     refreshOverlay();
-                    showError("????", exception);
+                    showError("渲染失败", exception);
                 });
             }
         });
@@ -501,7 +501,7 @@ public class FractalFxViewport extends StackPane {
             graphics.strokeRect(x, y, width, height);
         }
 
-        renderStatusLabel.setText(renderInProgress ? "???..." : "?????" + lastRenderDurationMillis + " ms");
+        renderStatusLabel.setText(renderInProgress ? "渲染中..." : "最近渲染：" + lastRenderDurationMillis + " ms");
         if (!renderInProgress) {
             frozenImageView.setOpacity(0.0);
             frozenImageView.setTranslateX(0.0);
@@ -528,15 +528,15 @@ public class FractalFxViewport extends StackPane {
             RenderResult exportResult = renderService.renderMeasured(RenderRequest.of(viewState, width, height));
             ImageIO.write(exportResult.image(), "png", file);
         } catch (IOException ex) {
-            showError("????", ex);
+            showError("导出失败", ex);
         }
     }
 
     private ExportSize promptForExportSize(Stage owner) {
-        List<String> choices = Arrays.asList("??????", "2x", "4x", "???");
+        List<String> choices = Arrays.asList("当前视图尺寸", "2x", "4x", "自定义");
         ChoiceDialog<String> dialog = new ChoiceDialog<String>(choices.get(0), choices);
-        dialog.setTitle("?????? PNG");
-        dialog.setHeaderText("??????");
+        dialog.setTitle("导出高分辨率 PNG");
+        dialog.setHeaderText("选择导出尺寸");
         dialog.initOwner(owner);
         Optional<String> selected = dialog.showAndWait();
         if (!selected.isPresent()) {
@@ -555,7 +555,7 @@ public class FractalFxViewport extends StackPane {
         }
 
         Dialog<ExportSize> customDialog = new Dialog<ExportSize>();
-        customDialog.setTitle("???????");
+        customDialog.setTitle("自定义导出尺寸");
         customDialog.initOwner(owner);
         ButtonType okButton = new ButtonType("??", ButtonBar.ButtonData.OK_DONE);
         customDialog.getDialogPane().getButtonTypes().addAll(okButton, ButtonType.CANCEL);
