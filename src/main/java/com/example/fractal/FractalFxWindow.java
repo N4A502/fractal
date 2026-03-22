@@ -32,10 +32,12 @@ import java.util.Locale;
 public class FractalFxWindow {
 
     private final Stage stage;
+    private final BorderPane root;
     private final FractalFxViewport viewport;
     private final ComboBox<FractalDefinition> fractalSelector;
     private final Spinner<Integer> depthSpinner;
     private final Slider zoomSlider;
+    private final Button sidebarToggleButton;
     private final Label summaryTitleLabel;
     private final Label summarySubtitleLabel;
     private final Label categoryValueLabel;
@@ -45,17 +47,21 @@ public class FractalFxWindow {
     private final Label backendPillLabel;
     private final Label renderPillLabel;
     private final Label statusLabel;
+    private ScrollPane sidebar;
     private boolean updatingZoomSlider;
+    private boolean sidebarVisible = true;
 
     public FractalFxWindow(Stage stage) {
         this.stage = stage;
+        this.root = new BorderPane();
         List<FractalDefinition> fractals = FractalRegistry.createDefinitions();
         this.viewport = new FractalFxViewport();
         this.fractalSelector = new ComboBox<FractalDefinition>(FXCollections.observableArrayList(fractals));
         this.depthSpinner = new Spinner<Integer>();
         this.zoomSlider = new Slider(10, 400, 100);
+        this.sidebarToggleButton = new Button();
         this.summaryTitleLabel = new Label("Fractal Explorer");
-        this.summarySubtitleLabel = new Label("Pure JavaFX shell on top of the existing Java render pipeline.");
+        this.summarySubtitleLabel = new Label("Viewport-first layout with compact controls.");
         this.categoryValueLabel = new Label();
         this.descriptionValueLabel = new Label();
         this.depthValueLabel = new Label();
@@ -75,19 +81,19 @@ public class FractalFxWindow {
     }
 
     private void configureStage() {
-        BorderPane root = new BorderPane();
         root.setStyle("-fx-background-color: #eef2f8;");
-        root.setPadding(new Insets(18));
+        root.setPadding(new Insets(10));
         root.setTop(buildTopBar());
-        root.setLeft(buildSidebar());
+        sidebar = buildSidebar();
+        root.setLeft(sidebar);
         root.setCenter(buildViewportShell());
         root.setBottom(buildStatusBar());
 
-        Scene scene = new Scene(root, 1380, 880, Color.web("#eef2f8"));
+        Scene scene = new Scene(root, 1480, 920, Color.web("#eef2f8"));
         stage.setTitle("Fractal Explorer");
         stage.setScene(scene);
-        stage.setMinWidth(1200);
-        stage.setMinHeight(780);
+        stage.setMinWidth(1100);
+        stage.setMinHeight(700);
         stage.setOnCloseRequest(event -> {
             viewport.shutdown();
             EscapeTimeBackendSelector.shutdown();
@@ -96,14 +102,20 @@ public class FractalFxWindow {
     }
 
     private void configureControls() {
-        summaryTitleLabel.setFont(Font.font("System", 26));
+        summaryTitleLabel.setFont(Font.font("System", 24));
         summaryTitleLabel.setStyle("-fx-font-weight: 700; -fx-text-fill: #181e2a;");
-        summarySubtitleLabel.setStyle("-fx-text-fill: #5e687a; -fx-font-size: 14px;");
-        statusLabel.setStyle("-fx-text-fill: #343d4e; -fx-font-size: 13px;");
+        summarySubtitleLabel.setStyle("-fx-text-fill: #5e687a; -fx-font-size: 13px;");
+        statusLabel.setStyle("-fx-text-fill: #343d4e; -fx-font-size: 12px;");
         descriptionValueLabel.setWrapText(true);
         categoryValueLabel.setWrapText(true);
         depthSpinner.setEditable(true);
+        depthSpinner.setMaxWidth(Double.MAX_VALUE);
+        fractalSelector.setMaxWidth(Double.MAX_VALUE);
+        zoomSlider.setMaxWidth(Double.MAX_VALUE);
         zoomSlider.setBlockIncrement(10);
+        sidebarToggleButton.setOnAction(event -> toggleSidebar());
+        sidebarToggleButton.setStyle("-fx-background-color: white; -fx-text-fill: #181e2a; -fx-border-color: #dce2eb; -fx-border-radius: 10; -fx-background-radius: 10; -fx-padding: 8 12 8 12;");
+        refreshSidebarToggleLabel();
         refreshRuntimeInfo();
     }
 
@@ -140,18 +152,19 @@ public class FractalFxWindow {
 
     private VBox buildTopBar() {
         VBox wrapper = new VBox();
-        wrapper.setPadding(new Insets(0, 0, 18, 0));
+        wrapper.setPadding(new Insets(0, 0, 10, 0));
 
-        HBox bar = new HBox(12);
+        HBox bar = new HBox(10);
         bar.setAlignment(Pos.CENTER_LEFT);
-        bar.setPadding(new Insets(16, 18, 16, 18));
+        bar.setPadding(new Insets(10, 12, 10, 12));
         bar.setStyle(cardStyle());
 
-        VBox titles = new VBox(6, summaryTitleLabel, summarySubtitleLabel);
+        VBox titles = new VBox(3, summaryTitleLabel, summarySubtitleLabel);
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
-        HBox pills = new HBox(10,
+        HBox pills = new HBox(8,
+                sidebarToggleButton,
                 backendPillLabel,
                 renderPillLabel,
                 createPrimaryButton("Export PNG", event -> viewport.exportHighResolutionView(stage)),
@@ -165,38 +178,22 @@ public class FractalFxWindow {
     }
 
     private ScrollPane buildSidebar() {
-        VBox sidebar = new VBox(14,
-                createHeroCard(),
+        VBox sidebarContent = new VBox(10,
                 createControlCard(),
                 createExportCard(),
-                createInfoCard("Navigation", "Drag to pan, use the mouse wheel to zoom, Shift-drag to box zoom, and double-click to reset the view."),
-                createInfoCard("Render pipeline", "Escape-time fractals can use the GPU path when available. Other recursive renderers continue to run on the Java renderer path inside the same JavaFX shell.")
+                createInfoStrip()
         );
-        sidebar.setPadding(new Insets(0, 6, 0, 0));
+        sidebarContent.setPadding(new Insets(0, 6, 0, 0));
 
-        ScrollPane scrollPane = new ScrollPane(sidebar);
+        ScrollPane scrollPane = new ScrollPane(sidebarContent);
         scrollPane.setFitToWidth(true);
-        scrollPane.setPrefViewportWidth(372);
-        scrollPane.setStyle("-fx-background-color: transparent;");
+        scrollPane.setPrefViewportWidth(292);
+        scrollPane.setMinViewportWidth(292);
+        scrollPane.setMaxWidth(292);
+        scrollPane.setStyle("-fx-background-color: transparent; -fx-background: transparent;");
         scrollPane.setPadding(Insets.EMPTY);
+        BorderPane.setMargin(scrollPane, new Insets(0, 10, 0, 0));
         return scrollPane;
-    }
-
-    private VBox createHeroCard() {
-        VBox box = createCardBox();
-        Label eyebrow = new Label("Pure Java UI");
-        eyebrow.setStyle("-fx-text-fill: #1f57c3; -fx-font-weight: 700; -fx-font-size: 13px;");
-        Label title = new Label("Modernized desktop shell");
-        title.setStyle("-fx-text-fill: #181e2a; -fx-font-weight: 700; -fx-font-size: 22px;");
-        Label body = wrapLabel("The Swing shell is gone. JavaFX now drives the window, controls, export flow, and runtime status while the rendering core stays in Java and keeps CPU/GPU fallback behavior.");
-        HBox badges = new HBox(8,
-                createBadge("JavaFX", "#e3edff", "#1f57c3"),
-                createBadge("Tile CPU", "#e3f7ef", "#148c5c"),
-                createBadge("Optional GPU", "#fff2e0", "#a1641a")
-        );
-        badges.setAlignment(Pos.CENTER_LEFT);
-        box.getChildren().addAll(eyebrow, title, body, badges);
-        return box;
     }
 
     private VBox createControlCard() {
@@ -221,41 +218,35 @@ public class FractalFxWindow {
 
     private VBox createExportCard() {
         VBox box = createCardBox();
-        HBox buttons = new HBox(8,
+        VBox buttons = new VBox(8,
                 createPrimaryButton("High-res export", event -> viewport.exportHighResolutionView(stage)),
                 createSecondaryButton("Current view", event -> viewport.exportCurrentView(stage))
         );
-        buttons.setAlignment(Pos.CENTER_LEFT);
+        buttons.setFillWidth(true);
         box.getChildren().addAll(
                 createCardTitle("Export and runtime"),
-                createSectionLabel("Export"),
-                wrapLabel("The viewport can export the current size, 2x, 4x, or a custom PNG size. Export uses the same backend selection path as preview rendering."),
                 buttons,
-                createSectionLabel("Backend status"),
-                wrapLabel("The top pills report the actual backend in use and the latest render time. If GPU setup fails or is unavailable, the app falls back to CPU automatically.")
+                wrapLabel("The top bar reports the actual backend and last render time. GPU automatically falls back to CPU when unavailable.")
         );
         return box;
     }
 
-    private VBox createInfoCard(String title, String text) {
+    private VBox createInfoStrip() {
         VBox box = createCardBox();
-        box.getChildren().addAll(createCardTitle(title), wrapLabel(text));
+        box.getChildren().addAll(
+                createCardTitle("Shortcuts"),
+                wrapLabel("Wheel zoom, drag pan, Shift-drag box zoom, double-click reset, right-click export.")
+        );
         return box;
     }
 
     private StackPane buildViewportShell() {
-        VBox shell = new VBox(12);
-        shell.setPadding(new Insets(16));
+        VBox shell = new VBox(8);
+        shell.setPadding(new Insets(8));
         shell.setStyle(cardStyle());
 
-        Label title = new Label("Viewport");
-        title.setStyle("-fx-text-fill: #181e2a; -fx-font-size: 18px; -fx-font-weight: 700;");
-        Label subtitle = new Label("Preview freezes the last completed frame during active navigation so panning and zooming stay responsive while a new image is rendering.");
-        subtitle.setStyle("-fx-text-fill: #5e687a; -fx-font-size: 13px;");
-        subtitle.setWrapText(true);
-
         VBox.setVgrow(viewport, Priority.ALWAYS);
-        shell.getChildren().addAll(new VBox(4, title, subtitle), viewport);
+        shell.getChildren().add(viewport);
 
         return new StackPane(shell);
     }
@@ -263,9 +254,9 @@ public class FractalFxWindow {
     private HBox buildStatusBar() {
         HBox bar = new HBox(statusLabel);
         bar.setAlignment(Pos.CENTER_LEFT);
-        bar.setPadding(new Insets(10, 14, 10, 14));
+        bar.setPadding(new Insets(8, 10, 8, 10));
         bar.setStyle(cardStyle());
-        BorderPane.setMargin(bar, new Insets(18, 0, 0, 0));
+        BorderPane.setMargin(bar, new Insets(10, 0, 0, 0));
         return bar;
     }
 
@@ -391,8 +382,8 @@ public class FractalFxWindow {
     }
 
     private VBox createCardBox() {
-        VBox box = new VBox(12);
-        box.setPadding(new Insets(16));
+        VBox box = new VBox(10);
+        box.setPadding(new Insets(12));
         box.setStyle(cardStyle());
         box.setFillWidth(true);
         return box;
@@ -400,20 +391,20 @@ public class FractalFxWindow {
 
     private Label createCardTitle(String text) {
         Label label = new Label(text);
-        label.setStyle("-fx-text-fill: #181e2a; -fx-font-size: 17px; -fx-font-weight: 700;");
+        label.setStyle("-fx-text-fill: #181e2a; -fx-font-size: 16px; -fx-font-weight: 700;");
         return label;
     }
 
     private Label createSectionLabel(String text) {
         Label label = new Label(text);
-        label.setStyle("-fx-text-fill: #181e2a; -fx-font-size: 13px; -fx-font-weight: 700;");
+        label.setStyle("-fx-text-fill: #181e2a; -fx-font-size: 12px; -fx-font-weight: 700;");
         return label;
     }
 
     private Label wrapLabel(String text) {
         Label label = new Label(text);
         label.setWrapText(true);
-        label.setStyle("-fx-text-fill: #5e687a; -fx-font-size: 13px;");
+        label.setStyle("-fx-text-fill: #5e687a; -fx-font-size: 12px;");
         return label;
     }
 
@@ -423,23 +414,19 @@ public class FractalFxWindow {
         return label;
     }
 
-    private Label createBadge(String text, String background, String foreground) {
-        Label label = new Label(text);
-        label.setStyle(pillStyle(background, foreground));
-        return label;
-    }
-
     private Button createPrimaryButton(String text, javafx.event.EventHandler<javafx.event.ActionEvent> action) {
         Button button = new Button(text);
         button.setOnAction(action);
-        button.setStyle("-fx-background-color: #2870ff; -fx-text-fill: white; -fx-font-weight: 700; -fx-background-radius: 10; -fx-padding: 10 14 10 14;");
+        button.setStyle("-fx-background-color: #2870ff; -fx-text-fill: white; -fx-font-weight: 700; -fx-background-radius: 10; -fx-padding: 9 12 9 12;");
+        button.setMaxWidth(Double.MAX_VALUE);
         return button;
     }
 
     private Button createSecondaryButton(String text, javafx.event.EventHandler<javafx.event.ActionEvent> action) {
         Button button = new Button(text);
         button.setOnAction(action);
-        button.setStyle("-fx-background-color: white; -fx-text-fill: #181e2a; -fx-border-color: #dce2eb; -fx-border-radius: 10; -fx-background-radius: 10; -fx-padding: 10 14 10 14;");
+        button.setStyle("-fx-background-color: white; -fx-text-fill: #181e2a; -fx-border-color: #dce2eb; -fx-border-radius: 10; -fx-background-radius: 10; -fx-padding: 9 12 9 12;");
+        button.setMaxWidth(Double.MAX_VALUE);
         return button;
     }
 
@@ -449,5 +436,15 @@ public class FractalFxWindow {
 
     private String pillStyle(String background, String foreground) {
         return "-fx-background-color: " + background + "; -fx-text-fill: " + foreground + "; -fx-font-size: 12px; -fx-font-weight: 700; -fx-background-radius: 999; -fx-padding: 8 12 8 12;";
+    }
+
+    private void toggleSidebar() {
+        sidebarVisible = !sidebarVisible;
+        root.setLeft(sidebarVisible ? sidebar : null);
+        refreshSidebarToggleLabel();
+    }
+
+    private void refreshSidebarToggleLabel() {
+        sidebarToggleButton.setText(sidebarVisible ? "Hide Controls" : "Show Controls");
     }
 }
