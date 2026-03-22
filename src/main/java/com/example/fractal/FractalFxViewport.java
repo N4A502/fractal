@@ -56,7 +56,7 @@ public class FractalFxViewport extends StackPane {
     private static final int MAX_EXPORT_DIMENSION = 12000;
 
     private final FractalRenderService renderService;
-    private final PauseTransition dragRenderDelay;
+    private final PauseTransition interactionRenderDelay;
     private final ImageView frozenImageView;
     private final ImageView imageView;
     private final Canvas overlayCanvas;
@@ -82,7 +82,7 @@ public class FractalFxViewport extends StackPane {
 
     public FractalFxViewport() {
         this.renderService = new FractalRenderService();
-        this.dragRenderDelay = new PauseTransition(Duration.millis(40));
+        this.interactionRenderDelay = new PauseTransition(Duration.millis(140));
         this.frozenImageView = new ImageView();
         this.imageView = new ImageView();
         this.overlayCanvas = new Canvas(880, 820);
@@ -104,7 +104,7 @@ public class FractalFxViewport extends StackPane {
         overlayCanvas.widthProperty().bind(widthProperty());
         overlayCanvas.heightProperty().bind(heightProperty());
 
-        dragRenderDelay.setOnFinished(event -> scheduleRender());
+        interactionRenderDelay.setOnFinished(event -> scheduleRender());
         widthProperty().addListener((obs, oldValue, newValue) -> scheduleRender());
         heightProperty().addListener((obs, oldValue, newValue) -> scheduleRender());
         bindInteractions();
@@ -126,7 +126,7 @@ public class FractalFxViewport extends StackPane {
         dragAnchorY = Double.NaN;
         selectionMode = false;
         clearSelection();
-        dragRenderDelay.stop();
+        interactionRenderDelay.stop();
         viewState = viewState.resetOffset();
         scheduleRender();
         notifyViewChanged();
@@ -338,7 +338,6 @@ public class FractalFxViewport extends StackPane {
         dragAnchorX = event.getX();
         dragAnchorY = event.getY();
         updateFrozenTransform();
-        dragRenderDelay.playFromStart();
         refreshOverlay();
         notifyViewChanged();
     }
@@ -355,7 +354,7 @@ public class FractalFxViewport extends StackPane {
             selectionEndY = event.getY();
             applySelectionZoom();
         } else {
-            dragRenderDelay.stop();
+            interactionRenderDelay.stop();
             scheduleRender();
         }
         dragAnchorX = Double.NaN;
@@ -369,6 +368,7 @@ public class FractalFxViewport extends StackPane {
         double factor = event.getDeltaY() > 0 ? 1.12 : 1.0 / 1.12;
         double nextZoom = clampMin(viewState.zoom() * factor, MIN_ZOOM);
         applyZoom(nextZoom, event.getX(), event.getY());
+        interactionRenderDelay.playFromStart();
         if (interactionListener != null) {
             interactionListener.onZoomChanged(nextZoom, viewState.offsetX(), viewState.offsetY(), true);
         }
@@ -377,7 +377,6 @@ public class FractalFxViewport extends StackPane {
     private void applyZoom(double nextZoom, double anchorX, double anchorY) {
         if (viewState.zoom() <= 0.0) {
             viewState = viewState.withZoomAndOffset(nextZoom, viewState.offsetX(), viewState.offsetY());
-            scheduleRender();
             notifyViewChanged();
             return;
         }
@@ -389,7 +388,6 @@ public class FractalFxViewport extends StackPane {
         double nextOffsetY = anchorY - centerY - zoomFactor * (anchorY - centerY - viewState.offsetY());
         viewState = viewState.withZoomAndOffset(nextZoom, nextOffsetX, nextOffsetY);
         updateFrozenTransform();
-        scheduleRender();
         notifyViewChanged();
     }
 
