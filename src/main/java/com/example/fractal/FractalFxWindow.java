@@ -62,6 +62,9 @@ public class FractalFxWindow {
     private final Slider saturationSlider;
     private final Slider brightnessFloorSlider;
     private final Slider brightnessRangeSlider;
+    private final Slider contrastSlider;
+    private final Slider vibranceSlider;
+    private final Slider exposureSlider;
     private final ColorPicker insideColorPicker;
     private final ColorPicker curveColorPicker;
     private final ColorPicker backgroundColorPicker;
@@ -79,6 +82,10 @@ public class FractalFxWindow {
     private final Label saturationValueLabel;
     private final Label brightnessFloorValueLabel;
     private final Label brightnessRangeValueLabel;
+    private final Label contrastValueLabel;
+    private final Label vibranceValueLabel;
+    private final Label exposureValueLabel;
+    private final Region paletteGradientPreview;
     private final FlowPane paletteSwatchPane;
     private ScrollPane sidebar;
     private boolean updatingZoomSlider;
@@ -105,6 +112,9 @@ public class FractalFxWindow {
         this.saturationSlider = new Slider(0, 100, 85);
         this.brightnessFloorSlider = new Slider(0, 100, 35);
         this.brightnessRangeSlider = new Slider(0, 100, 65);
+        this.contrastSlider = new Slider(0, 100, 65);
+        this.vibranceSlider = new Slider(0, 100, 85);
+        this.exposureSlider = new Slider(0, 100, 68);
         this.insideColorPicker = new ColorPicker(Color.rgb(5, 8, 18));
         this.curveColorPicker = new ColorPicker(Color.rgb(107, 227, 255));
         this.backgroundColorPicker = new ColorPicker(Color.rgb(7, 12, 26));
@@ -122,6 +132,10 @@ public class FractalFxWindow {
         this.saturationValueLabel = createValueBadge();
         this.brightnessFloorValueLabel = createValueBadge();
         this.brightnessRangeValueLabel = createValueBadge();
+        this.contrastValueLabel = createValueBadge();
+        this.vibranceValueLabel = createValueBadge();
+        this.exposureValueLabel = createValueBadge();
+        this.paletteGradientPreview = new Region();
         this.paletteSwatchPane = new FlowPane();
 
         configureStage();
@@ -186,11 +200,19 @@ public class FractalFxWindow {
         configureSlider(saturationSlider, 25, 5);
         configureSlider(brightnessFloorSlider, 25, 5);
         configureSlider(brightnessRangeSlider, 25, 5);
+        configureSlider(contrastSlider, 25, 5);
+        configureSlider(vibranceSlider, 25, 5);
+        configureSlider(exposureSlider, 25, 5);
 
         resetViewButton.setOnAction(event -> resetControls());
         resetPaletteButton.setOnAction(event -> resetPaletteControls());
         styleSecondaryButton(resetViewButton);
         styleSecondaryButton(resetPaletteButton);
+
+        paletteGradientPreview.setMinHeight(18);
+        paletteGradientPreview.setPrefHeight(18);
+        paletteGradientPreview.setMaxWidth(Double.MAX_VALUE);
+        paletteGradientPreview.setStyle("-fx-background-color: linear-gradient(from 0% 0% to 100% 0%, #050812, #6BE3FF); -fx-background-radius: 999; -fx-border-color: #dce2eb; -fx-border-radius: 999;");
 
         paletteSwatchPane.setHgap(4);
         paletteSwatchPane.setVgap(0);
@@ -219,6 +241,9 @@ public class FractalFxWindow {
         saturationSlider.valueProperty().addListener((obs, oldValue, newValue) -> applyPaletteControls(true));
         brightnessFloorSlider.valueProperty().addListener((obs, oldValue, newValue) -> applyPaletteControls(true));
         brightnessRangeSlider.valueProperty().addListener((obs, oldValue, newValue) -> applyPaletteControls(true));
+        contrastSlider.valueProperty().addListener((obs, oldValue, newValue) -> applyQuickPaletteControls(true));
+        vibranceSlider.valueProperty().addListener((obs, oldValue, newValue) -> applyQuickPaletteControls(true));
+        exposureSlider.valueProperty().addListener((obs, oldValue, newValue) -> applyQuickPaletteControls(true));
         insideColorPicker.valueProperty().addListener((obs, oldValue, newValue) -> applyPaletteControls(true));
         curveColorPicker.valueProperty().addListener((obs, oldValue, newValue) -> applyPaletteControls(true));
         backgroundColorPicker.valueProperty().addListener((obs, oldValue, newValue) -> applyPaletteControls(true));
@@ -350,33 +375,39 @@ public class FractalFxWindow {
         presetRow.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
         HBox.setHgrow(palettePresetSelector, Priority.ALWAYS);
 
-        VBox quickColorBox = new VBox(8,
-                createSectionLabel("快速风格"),
-                presetRow,
-                createSectionLabel("内部颜色"),
-                insideColorPicker,
-                createSectionLabel("调色盘"),
-                paletteSwatchPane,
-                paletteHintLabel
-        );
-
-        TitledPane advancedPane = new TitledPane("高级调色", new VBox(10,
+        TitledPane expertPane = new TitledPane("专家模式", new VBox(10,
                 createSliderRow("色相起点", hueStartSlider, hueStartValueLabel),
                 createSliderRow("色相范围", hueRangeSlider, hueRangeValueLabel),
                 createSliderRow("饱和度", saturationSlider, saturationValueLabel),
                 createSliderRow("亮度下限", brightnessFloorSlider, brightnessFloorValueLabel),
                 createSliderRow("亮度范围", brightnessRangeSlider, brightnessRangeValueLabel)
         ));
-        advancedPane.setExpanded(false);
-        advancedPane.setCollapsible(true);
-        advancedPane.setAnimated(false);
-        advancedPane.setStyle("-fx-text-fill: #181e2a; -fx-font-size: 12px; -fx-font-weight: 700;");
+        expertPane.setExpanded(false);
+        expertPane.setCollapsible(true);
+        expertPane.setAnimated(false);
+        expertPane.setStyle("-fx-text-fill: #181e2a; -fx-font-size: 12px; -fx-font-weight: 700;");
+
+        VBox quickColorBox = new VBox(8,
+                createSectionLabel("风格预设"),
+                presetRow,
+                createSectionLabel("渐变预览"),
+                paletteGradientPreview,
+                createSliderRow("对比度", contrastSlider, contrastValueLabel),
+                createSliderRow("鲜艳度", vibranceSlider, vibranceValueLabel),
+                createSliderRow("明暗", exposureSlider, exposureValueLabel),
+                createInlineColorPickerRow("内部颜色", insideColorPicker),
+                createInlineColorPickerRow("曲线颜色", curveColorPicker),
+                createInlineColorPickerRow("背景颜色", backgroundColorPicker),
+                createSectionLabel("调色盘"),
+                paletteSwatchPane,
+                paletteHintLabel
+        );
 
         VBox box = createCardBox();
         box.getChildren().addAll(
                 createCardTitle("调色"),
                 quickColorBox,
-                advancedPane
+                expertPane
         );
         return box;
     }
@@ -387,6 +418,17 @@ public class FractalFxWindow {
         VBox wrapper = new VBox(6, header, slider);
         HBox row = new HBox(wrapper);
         HBox.setHgrow(wrapper, Priority.ALWAYS);
+        return row;
+    }
+
+    private HBox createInlineColorPickerRow(String title, ColorPicker picker) {
+        Label titleLabel = createSectionLabel(title);
+        picker.setPrefWidth(116);
+        picker.setMaxWidth(116);
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+        HBox row = new HBox(8, titleLabel, spacer, picker);
+        row.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
         return row;
     }
 
@@ -558,19 +600,19 @@ public class FractalFxWindow {
         if (preset == null) {
             return;
         }
-        EscapeTimeColorManager.setSettings(preset.createSettings());
-        refreshPaletteControlsFromManager();
-        syncControls();
+        applyPaletteSettings(preset.createSettings(), false);
     }
 
     private void resetPaletteControls() {
         palettePresetSelector.setValue(EscapeTimeColorPreset.CLASSIC);
-        EscapeTimeColorManager.setSettings(EscapeTimeColorPreset.CLASSIC.createSettings());
-        refreshPaletteControlsFromManager();
-        syncPalettePresetSelection(EscapeTimeColorManager.getSettings());
-        if (isPaletteEnabled()) {
-            syncControls();
+        applyPaletteSettings(EscapeTimeColorPreset.CLASSIC.createSettings(), false);
+    }
+
+    private void applyQuickPaletteControls(boolean clearPresetSelection) {
+        if (updatingPaletteControls) {
+            return;
         }
+        applyPaletteSettings(createQuickPaletteSettings(), clearPresetSelection);
     }
 
     private void applyPaletteControls(boolean clearPresetSelection) {
@@ -587,8 +629,29 @@ public class FractalFxWindow {
                 toRgb(curveColorPicker.getValue()),
                 toRgb(backgroundColorPicker.getValue())
         );
+        applyPaletteSettings(settings, clearPresetSelection);
+    }
+
+    private EscapeTimeColorSettings createQuickPaletteSettings() {
+        float contrast = clampUnit((float) (contrastSlider.getValue() / 100.0));
+        float exposure = clampUnit((float) (exposureSlider.getValue() / 100.0));
+        float brightnessRange = contrast;
+        float brightnessFloor = clampUnit(exposure - brightnessRange * 0.5f);
+        return new EscapeTimeColorSettings(
+                (float) hueStartSlider.getValue(),
+                (float) hueRangeSlider.getValue(),
+                clampUnit((float) (vibranceSlider.getValue() / 100.0)),
+                brightnessFloor,
+                brightnessRange,
+                toRgb(insideColorPicker.getValue()),
+                toRgb(curveColorPicker.getValue()),
+                toRgb(backgroundColorPicker.getValue())
+        );
+    }
+
+    private void applyPaletteSettings(EscapeTimeColorSettings settings, boolean clearPresetSelection) {
         EscapeTimeColorManager.setSettings(settings);
-        updatePaletteMetricLabels();
+        refreshPaletteControls(settings);
         if (clearPresetSelection) {
             syncPalettePresetSelection(settings);
         }
@@ -598,7 +661,10 @@ public class FractalFxWindow {
     }
 
     private void refreshPaletteControlsFromManager() {
-        EscapeTimeColorSettings settings = EscapeTimeColorManager.getSettings();
+        refreshPaletteControls(EscapeTimeColorManager.getSettings());
+    }
+
+    private void refreshPaletteControls(EscapeTimeColorSettings settings) {
         updatingPaletteControls = true;
         try {
             hueStartSlider.setValue(settings.hueStartDegrees());
@@ -606,10 +672,14 @@ public class FractalFxWindow {
             saturationSlider.setValue(settings.saturation() * 100.0);
             brightnessFloorSlider.setValue(settings.brightnessFloor() * 100.0);
             brightnessRangeSlider.setValue(settings.brightnessRange() * 100.0);
+            contrastSlider.setValue(settings.brightnessRange() * 100.0);
+            vibranceSlider.setValue(settings.saturation() * 100.0);
+            exposureSlider.setValue(Math.min(100.0, (settings.brightnessFloor() + settings.brightnessRange() * 0.5) * 100.0));
             insideColorPicker.setValue(fromRgb(settings.insideColorRgb()));
             curveColorPicker.setValue(fromRgb(settings.curveColorRgb()));
             backgroundColorPicker.setValue(fromRgb(settings.backgroundColorRgb()));
             updatePaletteMetricLabels();
+            refreshGradientPreview(settings);
         } finally {
             updatingPaletteControls = false;
         }
@@ -629,6 +699,9 @@ public class FractalFxWindow {
     private void updatePaletteSectionState(FractalDefinition definition) {
         boolean enabled = definition != null && definition.renderer() instanceof AbstractEscapeTimeRenderer;
         palettePresetSelector.setDisable(!enabled);
+        contrastSlider.setDisable(!enabled);
+        vibranceSlider.setDisable(!enabled);
+        exposureSlider.setDisable(!enabled);
         hueStartSlider.setDisable(!enabled);
         hueRangeSlider.setDisable(!enabled);
         saturationSlider.setDisable(!enabled);
@@ -637,11 +710,12 @@ public class FractalFxWindow {
         insideColorPicker.setDisable(!enabled);
         curveColorPicker.setDisable(!enabled);
         backgroundColorPicker.setDisable(!enabled);
+        paletteGradientPreview.setDisable(!enabled);
         paletteSwatchPane.setDisable(!enabled);
         resetPaletteButton.setDisable(!enabled);
         paletteHintLabel.setText(enabled
-                ? "先选预设，再用高级调色微调；调色盘用于快速改内部颜色。"
-                : "当前分形不走逃逸时间配色，调色区已自动禁用。");
+                ? "先选风格，再用对比度、鲜艳度和明暗微调；展开专家模式可继续调 HSB 参数。"
+                : "当前分形不使用逃逸时间着色，调色区已自动禁用。");
     }
 
     private boolean isPaletteEnabled() {
@@ -650,11 +724,48 @@ public class FractalFxWindow {
     }
 
     private void updatePaletteMetricLabels() {
+        contrastValueLabel.setText(String.format(Locale.US, "%.0f%%", contrastSlider.getValue()));
+        vibranceValueLabel.setText(String.format(Locale.US, "%.0f%%", vibranceSlider.getValue()));
+        exposureValueLabel.setText(String.format(Locale.US, "%.0f%%", exposureSlider.getValue()));
         hueStartValueLabel.setText(String.format(Locale.US, "%.0f°", hueStartSlider.getValue()));
         hueRangeValueLabel.setText(String.format(Locale.US, "%.0f°", hueRangeSlider.getValue()));
         saturationValueLabel.setText(String.format(Locale.US, "%.0f%%", saturationSlider.getValue()));
         brightnessFloorValueLabel.setText(String.format(Locale.US, "%.0f%%", brightnessFloorSlider.getValue()));
         brightnessRangeValueLabel.setText(String.format(Locale.US, "%.0f%%", brightnessRangeSlider.getValue()));
+    }
+
+    private void refreshGradientPreview(EscapeTimeColorSettings settings) {
+        String style = String.format(Locale.US,
+                "-fx-background-color: linear-gradient(from 0%% 0%% to 100%% 0%%, %s 0%%, %s 22%%, %s 48%%, %s 74%%, %s 100%%); -fx-background-radius: 999; -fx-border-color: #dce2eb; -fx-border-radius: 999;",
+                toHex(Color.rgb((settings.backgroundColorRgb() >> 16) & 0xFF, (settings.backgroundColorRgb() >> 8) & 0xFF, settings.backgroundColorRgb() & 0xFF)),
+                toHex(computeGradientColor(settings, 0.15)),
+                toHex(computeGradientColor(settings, 0.45)),
+                toHex(computeGradientColor(settings, 0.75)),
+                toHex(Color.rgb((settings.insideColorRgb() >> 16) & 0xFF, (settings.insideColorRgb() >> 8) & 0xFF, settings.insideColorRgb() & 0xFF))
+        );
+        paletteGradientPreview.setStyle(style);
+    }
+
+    private Color computeGradientColor(EscapeTimeColorSettings settings, double progress) {
+        double hue = settings.hueStartDegrees() - settings.hueRangeDegrees() * progress;
+        double brightness = clampUnit((float) (settings.brightnessFloor() + settings.brightnessRange() * progress));
+        return Color.hsb(wrapHueDegrees(hue), settings.saturation(), brightness);
+    }
+
+    private String toHex(Color color) {
+        return String.format(Locale.US, "#%02X%02X%02X",
+                (int) Math.round(color.getRed() * 255.0),
+                (int) Math.round(color.getGreen() * 255.0),
+                (int) Math.round(color.getBlue() * 255.0));
+    }
+
+    private double wrapHueDegrees(double hue) {
+        double wrapped = hue % 360.0;
+        return wrapped < 0.0 ? wrapped + 360.0 : wrapped;
+    }
+
+    private float clampUnit(float value) {
+        return Math.max(0.0f, Math.min(1.0f, value));
     }
 
     private void setZoomSliderValue(double zoom) {
