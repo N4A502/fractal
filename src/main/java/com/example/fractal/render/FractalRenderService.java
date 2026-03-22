@@ -2,10 +2,10 @@ package com.example.fractal.render;
 
 import com.example.fractal.model.FractalViewState;
 
-import javax.swing.SwingWorker;
 import java.awt.image.BufferedImage;
-import java.util.concurrent.CancellationException;
-import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 public class FractalRenderService {
 
@@ -18,42 +18,34 @@ public class FractalRenderService {
     }
 
     private long renderSequence;
-    private SwingWorker<RenderResult, Void> renderWorker;
+    private final ExecutorService renderExecutor = Executors.newSingleThreadExecutor(runnable -> {
+        Thread thread = new Thread(runnable, "fractal-render-worker");
+        thread.setDaemon(true);
+        return thread;
+    });
+    private Future<?> renderFuture;
 
     public void renderAsync(RenderRequest request, Listener listener) {
         cancelActiveRender();
 
         final long requestSequence = ++renderSequence;
         listener.onRenderStarted(request);
-        renderWorker = new SwingWorker<RenderResult, Void>() {
-            @Override
-            protected RenderResult doInBackground() {
-                return renderMeasured(request);
-            }
-
-            @Override
-            protected void done() {
-                if (isCancelled() || requestSequence != renderSequence) {
+        renderFuture = renderExecutor.submit(() -> {
+            try {
+                RenderResult result = renderMeasured(request);
+                if (!Thread.currentThread().isInterrupted() && requestSequence == renderSequence) {
+                    listener.onRenderCompleted(result);
+                }
+            } catch (Exception ex) {
+                if (Thread.currentThread().isInterrupted() || requestSequence != renderSequence) {
                     return;
                 }
-
-                try {
-                    listener.onRenderCompleted(get());
-                } catch (CancellationException ignored) {
-                    // Ignore stale render jobs.
-                } catch (InterruptedException ex) {
+                if (ex instanceof InterruptedException) {
                     Thread.currentThread().interrupt();
-                } catch (ExecutionException ex) {
-                    Throwable cause = ex.getCause() != null ? ex.getCause() : ex;
-                    if (cause instanceof Exception) {
-                        listener.onRenderFailed(request, (Exception) cause);
-                    } else {
-                        listener.onRenderFailed(request, new RuntimeException(cause));
-                    }
                 }
+                listener.onRenderFailed(request, ex);
             }
-        };
-        renderWorker.execute();
+        });
     }
 
     public RenderResult renderMeasured(RenderRequest request) {
@@ -72,8 +64,13 @@ public class FractalRenderService {
     }
 
     public void cancelActiveRender() {
-        if (renderWorker != null && !renderWorker.isDone()) {
-            renderWorker.cancel(true);
+        if (renderFuture != null && !renderFuture.isDone()) {
+            renderFuture.cancel(true);
         }
+    }
+
+    public void shutdown() {
+        cancelActiveRender();
+        renderExecutor.shutdownNow();
     }
 }
