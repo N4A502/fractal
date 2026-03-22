@@ -28,10 +28,10 @@ public final class FractalRegistry {
                         new MandelbrotRenderer()
                 ),
                 new FractalDefinition(
-                        "Julia ?",
                         "Julia 集",
                         "逃逸时间分形",
                         "与固定复常数配对的 Julia 集，适合观察轨道形态变化。",
+                        1,
                         9,
                         6,
                         100,

@@ -340,7 +340,7 @@ public class FractalFxWindow {
                 createSectionLabel("??"),
                 viewportHeightSpinner,
                 viewSizeValueLabel,
-                wrapLabel("视图会保持当前宽高比随窗口整体缩放。默认导出尺寸使用当前视图大小。"),
+                wrapLabel("视图会保持当前宽高比随窗口整体缩放。默认导出尺寸使用当前视图大小。")
         );
         return box;
     }
@@ -379,7 +379,7 @@ public class FractalFxWindow {
                 exportButton,
                 exportCurrentButton,
                 resetViewButton,
-                wrapLabel("高分辨率导出会按当前视图配置重新渲染；也可以在导出时切换到 2x、4x 或自定义尺寸。"),
+                wrapLabel("高分辨率导出会按当前视图配置重新渲染；也可以在导出时切换到 2x、4x 或自定义尺寸。")
         );
         return box;
     }
