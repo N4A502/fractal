@@ -22,7 +22,7 @@ public final class FractalRegistry {
                         "逃逸时间分形",
                         "经典的复平面分形，适合做深度缩放和边界观察。",
                         1,
-                        9,
+                        12,
                         6,
                         100,
                         new MandelbrotRenderer()
@@ -32,7 +32,7 @@ public final class FractalRegistry {
                         "逃逸时间分形",
                         "与固定复常数配对的 Julia 集，适合观察轨道形态变化。",
                         1,
-                        9,
+                        12,
                         6,
                         100,
                         new JuliaRenderer()
@@ -42,7 +42,7 @@ public final class FractalRegistry {
                         "逃逸时间分形",
                         "带有折叠坐标的尖锐分形，边缘有类似火焰的纹理。",
                         1,
-                        9,
+                        12,
                         6,
                         100,
                         new BurningShipRenderer()
@@ -52,7 +52,7 @@ public final class FractalRegistry {
                         "替换规则分形",
                         "通过重复替换线段生成的递归曲线，结构规整清晰。",
                         1,
-                        7,
+                        9,
                         4,
                         100,
                         new KochSnowflakeRenderer()
@@ -62,7 +62,7 @@ public final class FractalRegistry {
                         "递归几何",
                         "多分支递归结构，适合观察层级和角度变化。",
                         1,
-                        10,
+                        14,
                         7,
                         100,
                         new FractalTreeRenderer()
@@ -72,7 +72,7 @@ public final class FractalRegistry {
                         "递归几何",
                         "反复移除九宫格中心区域得到的平面分形。",
                         1,
-                        6,
+                        8,
                         4,
                         100,
                         new SierpinskiCarpetRenderer()

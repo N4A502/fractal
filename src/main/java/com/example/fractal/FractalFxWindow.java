@@ -697,7 +697,7 @@ public class FractalFxWindow {
     }
 
     private void updatePaletteSectionState(FractalDefinition definition) {
-        boolean enabled = definition != null && definition.renderer() instanceof AbstractEscapeTimeRenderer;
+        boolean enabled = definition != null;
         palettePresetSelector.setDisable(!enabled);
         contrastSlider.setDisable(!enabled);
         vibranceSlider.setDisable(!enabled);
@@ -714,13 +714,12 @@ public class FractalFxWindow {
         paletteSwatchPane.setDisable(!enabled);
         resetPaletteButton.setDisable(!enabled);
         paletteHintLabel.setText(enabled
-                ? "先选风格，再用对比度、鲜艳度和明暗微调；展开专家模式可继续调 HSB 参数。"
-                : "当前分形不使用逃逸时间着色，调色区已自动禁用。");
+                ? "预设、调色盘、颜色选择和专家模式现在对所有分形类型都生效。"
+                : "请先选择一种分形。");
     }
 
     private boolean isPaletteEnabled() {
-        FractalDefinition definition = fractalSelector.getValue();
-        return definition != null && definition.renderer() instanceof AbstractEscapeTimeRenderer;
+        return fractalSelector.getValue() != null;
     }
 
     private void updatePaletteMetricLabels() {

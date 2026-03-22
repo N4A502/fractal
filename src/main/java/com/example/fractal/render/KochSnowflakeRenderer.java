@@ -14,7 +14,7 @@ public class KochSnowflakeRenderer implements FractalRenderer {
         graphics.fillRect(0, 0, width, height);
 
         graphics.setStroke(new BasicStroke(1.4f));
-        graphics.setColor(settings.curveColor());
+        graphics.setColor(settings.gradientColor(0.55f));
 
         double size = Math.min(width, height) * 0.38 * zoom;
         double centerX = width / 2.0 + offsetX;

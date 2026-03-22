@@ -11,11 +11,11 @@ public class SierpinskiCarpetRenderer implements FractalRenderer {
         graphics.setColor(settings.backgroundColor());
         graphics.fillRect(0, 0, width, height);
 
-        int size = (int) (Math.min(width, height) * 0.7 * Math.min(zoom, 1.4));
+        int size = (int) Math.round(Math.min(width, height) * 0.7 * zoom);
         int x = (int) Math.round((width - size) / 2.0 + offsetX);
         int y = (int) Math.round((height - size) / 2.0 + offsetY);
 
-        graphics.setColor(settings.curveColor());
+        graphics.setColor(settings.gradientColor(0.78f));
         graphics.fillRect(x, y, size, size);
         graphics.setColor(settings.insideColor());
         carve(graphics, x, y, size, depth);

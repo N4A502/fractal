@@ -23,9 +23,9 @@ public class FractalTreeRenderer implements FractalRenderer {
         double y2 = y1 + Math.sin(angle) * length;
 
         float progress = maxDepth <= 1 ? 1.0f : (maxDepth - depth) / (float) (maxDepth - 1);
-        Color start = settings.curveColor();
+        Color start = settings.gradientColor(progress);
         Color end = settings.insideColor();
-        graphics.setColor(blend(start, end, progress * 0.45f));
+        graphics.setColor(blend(start, end, progress * 0.30f));
         graphics.setStroke(new BasicStroke(Math.max(1.0f, depth * 0.75f), BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
         graphics.drawLine((int) Math.round(x1), (int) Math.round(y1), (int) Math.round(x2), (int) Math.round(y2));
 
