@@ -757,6 +757,7 @@ public class FractalFxWindow {
 
     private void updatePaletteSectionState(FractalDefinition definition) {
         boolean enabled = definition != null;
+        boolean escapeTime = isEscapeTimeDefinition(definition);
         palettePresetSelector.setDisable(!enabled);
         contrastSlider.setDisable(!enabled);
         vibranceSlider.setDisable(!enabled);
@@ -770,11 +771,29 @@ public class FractalFxWindow {
         curveColorPicker.setDisable(!enabled);
         backgroundColorPicker.setDisable(!enabled);
         paletteGradientPreview.setDisable(!enabled);
+        paletteComboPane.setDisable(!enabled);
         paletteSwatchPane.setDisable(!enabled);
         resetPaletteButton.setDisable(!enabled);
-        paletteHintLabel.setText(enabled
-                ? "预设、调色盘、颜色选择和专家模式现在对所有分形类型都生效。"
-                : "请先选择一种分形。");
+
+        palettePresetSectionLabel.setText("风格预设");
+        palettePreviewSectionLabel.setText("渐变预览");
+        paletteComboSectionLabel.setText("推荐组合");
+        backgroundColorSectionLabel.setText("背景颜色");
+        if (escapeTime) {
+            insideColorSectionLabel.setText("内部颜色");
+            curveColorSectionLabel.setText("曲线颜色");
+            paletteSwatchSectionLabel.setText("主渐变调色盘");
+            paletteHintLabel.setText(enabled
+                    ? "调色盘用于快速设定主渐变 / 曲线主色，不会覆盖内部颜色。"
+                    : "请先选择一种分形。");
+        } else {
+            insideColorSectionLabel.setText("辅助颜色");
+            curveColorSectionLabel.setText("主图形颜色");
+            paletteSwatchSectionLabel.setText("主图形调色盘");
+            paletteHintLabel.setText(enabled
+                    ? "调色盘用于快速设定主图形颜色，推荐组合会一次性协同调整三个颜色槽。"
+                    : "请先选择一种分形。");
+        }
     }
 
     private boolean isEscapeTimeDefinition(FractalDefinition definition) {
