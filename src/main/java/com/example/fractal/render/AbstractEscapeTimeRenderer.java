@@ -63,6 +63,16 @@ public abstract class AbstractEscapeTimeRenderer implements FractalRenderer {
 
     protected abstract int iteratePoint(double x0, double y0, int maxIterations);
 
+    protected abstract EscapeTimeShaderProfile getShaderProfile();
+
+    protected double getJuliaCx() {
+        return -0.7;
+    }
+
+    protected double getJuliaCy() {
+        return 0.27015;
+    }
+
     protected final int insideColorRgb() {
         return INSIDE_COLOR_RGB;
     }

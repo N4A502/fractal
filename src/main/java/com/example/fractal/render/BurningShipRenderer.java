@@ -33,4 +33,9 @@ public class BurningShipRenderer extends AbstractEscapeTimeRenderer {
     protected double getCenterY() {
         return -0.5;
     }
+
+    @Override
+    protected EscapeTimeShaderProfile getShaderProfile() {
+        return EscapeTimeShaderProfile.BURNING_SHIP;
+    }
 }
