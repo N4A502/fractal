@@ -27,6 +27,7 @@ import javafx.scene.text.Font;
 import javafx.stage.Stage;
 
 import java.util.List;
+import java.util.Locale;
 
 public class FractalFxWindow {
 
@@ -54,14 +55,14 @@ public class FractalFxWindow {
         this.depthSpinner = new Spinner<Integer>();
         this.zoomSlider = new Slider(10, 400, 100);
         this.summaryTitleLabel = new Label("Fractal Explorer");
-        this.summarySubtitleLabel = new Label("纯 JavaFX UI 壳，保留当前渲染内核与后端自动切换");
+        this.summarySubtitleLabel = new Label("Pure JavaFX shell on top of the existing Java render pipeline.");
         this.categoryValueLabel = new Label();
         this.descriptionValueLabel = new Label();
         this.depthValueLabel = new Label();
         this.zoomValueLabel = new Label();
         this.backendPillLabel = createPillLabel();
         this.renderPillLabel = createPillLabel();
-        this.statusLabel = new Label("鼠标: -, - | 缩放: 1.00x | 偏移: (0, 0)");
+        this.statusLabel = new Label("Cursor: -, - | Zoom: 1.00x | Offset: (0, 0)");
 
         configureStage();
         configureControls();
@@ -153,8 +154,8 @@ public class FractalFxWindow {
         HBox pills = new HBox(10,
                 backendPillLabel,
                 renderPillLabel,
-                createPrimaryButton("高分辨率导出", event -> viewport.exportHighResolutionView(stage)),
-                createSecondaryButton("重置视图", event -> resetControls())
+                createPrimaryButton("Export PNG", event -> viewport.exportHighResolutionView(stage)),
+                createSecondaryButton("Reset View", event -> resetControls())
         );
         pills.setAlignment(Pos.CENTER_RIGHT);
 
@@ -168,8 +169,8 @@ public class FractalFxWindow {
                 createHeroCard(),
                 createControlCard(),
                 createExportCard(),
-                createInfoCard("交互提示", "左键拖拽平移，滚轮缩放，Shift + 拖拽框选放大，双击快速重置。右键菜单保留两种 PNG 导出入口。"),
-                createInfoCard("当前覆盖", "逃逸时间分形已接性能路线。递归几何和规则替换分形仍保留 Java2D 路径，但它们复用同一套 JavaFX 外壳与导出流程。")
+                createInfoCard("Navigation", "Drag to pan, use the mouse wheel to zoom, Shift-drag to box zoom, and double-click to reset the view."),
+                createInfoCard("Render pipeline", "Escape-time fractals can use the GPU path when available. Other recursive renderers continue to run on the Java renderer path inside the same JavaFX shell.")
         );
         sidebar.setPadding(new Insets(0, 6, 0, 0));
 
@@ -183,15 +184,15 @@ public class FractalFxWindow {
 
     private VBox createHeroCard() {
         VBox box = createCardBox();
-        Label eyebrow = new Label("实时浏览与可选 GPU 路线");
+        Label eyebrow = new Label("Pure Java UI");
         eyebrow.setStyle("-fx-text-fill: #1f57c3; -fx-font-weight: 700; -fx-font-size: 13px;");
-        Label title = new Label("分形探索控制台");
+        Label title = new Label("Modernized desktop shell");
         title.setStyle("-fx-text-fill: #181e2a; -fx-font-weight: 700; -fx-font-size: 22px;");
-        Label body = wrapLabel("当前界面已经切到纯 JavaFX 壳。渲染、导出、CPU/GPU 自动选择和回退逻辑保持在 Java 内核层，不再依赖 Swing。");
+        Label body = wrapLabel("The Swing shell is gone. JavaFX now drives the window, controls, export flow, and runtime status while the rendering core stays in Java and keeps CPU/GPU fallback behavior.");
         HBox badges = new HBox(8,
-                createBadge("JavaFX UI", "#e3edff", "#1f57c3"),
-                createBadge("Tile Render", "#e3f7ef", "#148c5c"),
-                createBadge("Hi-Res Export", "#fff2e0", "#a1641a")
+                createBadge("JavaFX", "#e3edff", "#1f57c3"),
+                createBadge("Tile CPU", "#e3f7ef", "#148c5c"),
+                createBadge("Optional GPU", "#fff2e0", "#a1641a")
         );
         badges.setAlignment(Pos.CENTER_LEFT);
         box.getChildren().addAll(eyebrow, title, body, badges);
@@ -201,17 +202,17 @@ public class FractalFxWindow {
     private VBox createControlCard() {
         VBox box = createCardBox();
         box.getChildren().addAll(
-                createCardTitle("参数控制"),
-                createSectionLabel("分形类型"),
+                createCardTitle("Controls"),
+                createSectionLabel("Fractal"),
                 fractalSelector,
-                createSectionLabel("分类"),
+                createSectionLabel("Category"),
                 categoryValueLabel,
-                createSectionLabel("说明"),
+                createSectionLabel("Description"),
                 descriptionValueLabel,
-                createSectionLabel("层级 / 迭代"),
+                createSectionLabel("Depth / iterations"),
                 depthValueLabel,
                 depthSpinner,
-                createSectionLabel("缩放"),
+                createSectionLabel("Zoom"),
                 zoomValueLabel,
                 zoomSlider
         );
@@ -221,17 +222,17 @@ public class FractalFxWindow {
     private VBox createExportCard() {
         VBox box = createCardBox();
         HBox buttons = new HBox(8,
-                createPrimaryButton("导出高分辨率", event -> viewport.exportHighResolutionView(stage)),
-                createSecondaryButton("导出当前视图", event -> viewport.exportCurrentView(stage))
+                createPrimaryButton("High-res export", event -> viewport.exportHighResolutionView(stage)),
+                createSecondaryButton("Current view", event -> viewport.exportCurrentView(stage))
         );
         buttons.setAlignment(Pos.CENTER_LEFT);
         box.getChildren().addAll(
-                createCardTitle("导出与运行状态"),
-                createSectionLabel("导出"),
-                wrapLabel("支持当前尺寸、2x、4x 与自定义宽高 PNG。预览和导出统一走当前选择的渲染后端。"),
+                createCardTitle("Export and runtime"),
+                createSectionLabel("Export"),
+                wrapLabel("The viewport can export the current size, 2x, 4x, or a custom PNG size. Export uses the same backend selection path as preview rendering."),
                 buttons,
-                createSectionLabel("实时状态"),
-                wrapLabel("顶部会持续显示当前实际后端和最近渲染耗时。没有可用 GPU 时会自动回退 CPU。")
+                createSectionLabel("Backend status"),
+                wrapLabel("The top pills report the actual backend in use and the latest render time. If GPU setup fails or is unavailable, the app falls back to CPU automatically.")
         );
         return box;
     }
@@ -247,17 +248,16 @@ public class FractalFxWindow {
         shell.setPadding(new Insets(16));
         shell.setStyle(cardStyle());
 
-        Label title = new Label("渲染视口");
+        Label title = new Label("Viewport");
         title.setStyle("-fx-text-fill: #181e2a; -fx-font-size: 18px; -fx-font-weight: 700;");
-        Label subtitle = new Label("预览会在后台渲染期间冻结上一帧并保持拖拽反馈。状态栏会同步显示后端和复平面坐标。");
+        Label subtitle = new Label("Preview freezes the last completed frame during active navigation so panning and zooming stay responsive while a new image is rendering.");
         subtitle.setStyle("-fx-text-fill: #5e687a; -fx-font-size: 13px;");
         subtitle.setWrapText(true);
 
         VBox.setVgrow(viewport, Priority.ALWAYS);
         shell.getChildren().addAll(new VBox(4, title, subtitle), viewport);
 
-        StackPane wrapper = new StackPane(shell);
-        return wrapper;
+        return new StackPane(shell);
     }
 
     private HBox buildStatusBar() {
@@ -285,7 +285,7 @@ public class FractalFxWindow {
         summarySubtitleLabel.setText(definition.description());
         depthSpinner.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(
                 definition.minDepth(),
-                Math.max(definition.minDepth(), 200),
+                definition.maxDepth(),
                 Math.max(definition.defaultDepth(), definition.minDepth()),
                 1
         ));
@@ -304,8 +304,8 @@ public class FractalFxWindow {
 
         int depth = depthSpinner.getValue();
         double zoom = zoomSlider.getValue() / 100.0;
-        depthValueLabel.setText(depth + " 级");
-        zoomValueLabel.setText(String.format("%.2f x", zoom));
+        depthValueLabel.setText(depth + " levels");
+        zoomValueLabel.setText(String.format(Locale.US, "%.2f x", zoom));
         viewport.render(definition, depth, zoom);
         refreshRuntimeInfo();
     }
@@ -343,16 +343,29 @@ public class FractalFxWindow {
     private void refreshRuntimeInfo() {
         String backendText = viewport.getBackendDescription();
         boolean rendering = viewport.isRenderInProgress();
-        backendPillLabel.setText("后端: " + backendText);
-        renderPillLabel.setText(rendering ? "状态: 渲染中" : "最近渲染: " + viewport.getLastRenderDurationMillis() + " ms");
-        renderPillLabel.setStyle(rendering ? pillStyle("#e3edff", "#1f57c3") : pillStyle("#e3f7ef", "#148c5c"));
+        backendPillLabel.setText("Backend: " + backendText);
+        if (rendering) {
+            renderPillLabel.setText("Rendering...");
+            renderPillLabel.setStyle(pillStyle("#e3edff", "#1f57c3"));
+        } else {
+            renderPillLabel.setText("Last render: " + viewport.getLastRenderDurationMillis() + " ms");
+            renderPillLabel.setStyle(pillStyle("#e3f7ef", "#148c5c"));
+        }
     }
 
     private String buildStatusText(double zoom, double offsetX, double offsetY, double mouseX, double mouseY) {
-        String mouse = mouseX >= 0 && mouseY >= 0 ? String.format("%.0f, %.0f", mouseX, mouseY) : "-, -";
+        String mouse = mouseX >= 0 && mouseY >= 0
+                ? String.format(Locale.US, "%.0f, %.0f", mouseX, mouseY)
+                : "-, -";
         String complex = buildComplexCoordinateText(mouseX, mouseY, zoom, offsetX, offsetY);
-        String backend = viewport.getBackendDescription();
-        return String.format("鼠标: %s%s | 缩放: %.2fx | 偏移: (%.0f, %.0f) | 后端: %s", mouse, complex, zoom, offsetX, offsetY, backend);
+        return String.format(Locale.US,
+                "Cursor: %s%s | Zoom: %.2fx | Offset: (%.0f, %.0f) | Backend: %s",
+                mouse,
+                complex,
+                zoom,
+                offsetX,
+                offsetY,
+                viewport.getBackendDescription());
     }
 
     private String buildComplexCoordinateText(double mouseX, double mouseY, double zoom, double offsetX, double offsetY) {
@@ -374,7 +387,7 @@ public class FractalFxWindow {
                 zoom,
                 offsetY
         );
-        return String.format(" | 复平面: %.6f %+.6fi", real, imaginary);
+        return String.format(Locale.US, " | Complex: %.6f %+.6fi", real, imaginary);
     }
 
     private VBox createCardBox() {

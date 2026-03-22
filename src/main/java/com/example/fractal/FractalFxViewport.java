@@ -10,11 +10,14 @@ import javafx.application.Platform;
 import javafx.geometry.Pos;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.control.Alert;
 import javafx.scene.control.ButtonBar;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.ChoiceDialog;
+import javafx.scene.control.ContextMenu;
 import javafx.scene.control.Dialog;
 import javafx.scene.control.Label;
+import javafx.scene.control.MenuItem;
 import javafx.scene.control.Spinner;
 import javafx.scene.image.ImageView;
 import javafx.scene.image.PixelFormat;
@@ -24,6 +27,7 @@ import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.input.ScrollEvent;
 import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
@@ -35,6 +39,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 
 public class FractalFxViewport extends StackPane {
@@ -56,6 +61,7 @@ public class FractalFxViewport extends StackPane {
     private final ImageView imageView;
     private final Canvas overlayCanvas;
     private final Label renderStatusLabel;
+    private final ContextMenu contextMenu;
 
     private FractalViewState viewState;
     private FractalViewState frozenViewState;
@@ -81,6 +87,7 @@ public class FractalFxViewport extends StackPane {
         this.imageView = new ImageView();
         this.overlayCanvas = new Canvas(880, 820);
         this.renderStatusLabel = new Label();
+        this.contextMenu = buildContextMenu();
         this.viewState = new FractalViewState(null, 0, 1.0, 0.0, 0.0);
 
         setStyle("-fx-background-color: #080c18; -fx-background-radius: 12;");
@@ -129,7 +136,7 @@ public class FractalFxViewport extends StackPane {
         if (!viewState.hasDefinition()) {
             return;
         }
-        exportImageWithSize(owner, (int) Math.max(1, Math.round(getWidth())), (int) Math.max(1, Math.round(getHeight())), "导出当前视图");
+        exportImageWithSize(owner, (int) Math.max(1, Math.round(getWidth())), (int) Math.max(1, Math.round(getHeight())), "Export Current View");
     }
 
     public void exportHighResolutionView(Stage owner) {
@@ -138,7 +145,7 @@ public class FractalFxViewport extends StackPane {
         }
         ExportSize exportSize = promptForExportSize(owner);
         if (exportSize != null) {
-            exportImageWithSize(owner, exportSize.width, exportSize.height, "导出高分辨率 PNG");
+            exportImageWithSize(owner, exportSize.width, exportSize.height, "Export High Resolution PNG");
         }
     }
 
@@ -167,6 +174,24 @@ public class FractalFxViewport extends StackPane {
 
     public void shutdown() {
         renderService.shutdown();
+    }
+
+    private ContextMenu buildContextMenu() {
+        MenuItem exportCurrent = new MenuItem("Export current view");
+        exportCurrent.setOnAction(event -> exportCurrentView(resolveOwner()));
+        MenuItem exportHighRes = new MenuItem("Export high resolution PNG");
+        exportHighRes.setOnAction(event -> exportHighResolutionView(resolveOwner()));
+        MenuItem reset = new MenuItem("Reset view");
+        reset.setOnAction(event -> {
+            if (interactionListener != null) {
+                interactionListener.onResetRequested();
+            }
+        });
+        return new ContextMenu(exportCurrent, exportHighRes, reset);
+    }
+
+    private Stage resolveOwner() {
+        return getScene() != null && getScene().getWindow() instanceof Stage ? (Stage) getScene().getWindow() : null;
     }
 
     private void scheduleRender() {
@@ -217,6 +242,7 @@ public class FractalFxViewport extends StackPane {
                 Platform.runLater(() -> {
                     renderInProgress = false;
                     refreshOverlay();
+                    showError("Render failed", exception);
                 });
             }
         });
@@ -251,6 +277,11 @@ public class FractalFxViewport extends StackPane {
             notifyViewChanged();
         });
         setOnMouseClicked(event -> {
+            if (event.getButton() == MouseButton.SECONDARY) {
+                contextMenu.show(this, event.getScreenX(), event.getScreenY());
+                return;
+            }
+            contextMenu.hide();
             if (event.getClickCount() >= 2 && event.getButton() == MouseButton.PRIMARY && interactionListener != null) {
                 interactionListener.onResetRequested();
             }
@@ -263,6 +294,7 @@ public class FractalFxViewport extends StackPane {
             return;
         }
 
+        contextMenu.hide();
         mouseX = event.getX();
         mouseY = event.getY();
         if (event.isShiftDown()) {
@@ -428,7 +460,7 @@ public class FractalFxViewport extends StackPane {
             graphics.strokeRect(x, y, width, height);
         }
 
-        renderStatusLabel.setText(renderInProgress ? "正在渲染..." : "最近渲染: " + lastRenderDurationMillis + " ms");
+        renderStatusLabel.setText(renderInProgress ? "Rendering..." : "Last render: " + lastRenderDurationMillis + " ms");
         if (!renderInProgress) {
             frozenImageView.setOpacity(0.0);
             frozenImageView.setTranslateX(0.0);
@@ -441,13 +473,13 @@ public class FractalFxViewport extends StackPane {
     private void exportImageWithSize(Stage owner, int width, int height, String title) {
         FileChooser chooser = new FileChooser();
         chooser.setTitle(title);
-        chooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("PNG 图片", "*.png"));
+        chooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("PNG Image", "*.png"));
         chooser.setInitialFileName(buildDefaultFileName(width, height));
         File file = chooser.showSaveDialog(owner);
         if (file == null) {
             return;
         }
-        if (!file.getName().toLowerCase().endsWith(".png")) {
+        if (!file.getName().toLowerCase(Locale.ROOT).endsWith(".png")) {
             file = new File(file.getParentFile(), file.getName() + ".png");
         }
 
@@ -455,15 +487,15 @@ public class FractalFxViewport extends StackPane {
             RenderResult exportResult = renderService.renderMeasured(RenderRequest.of(viewState, width, height));
             ImageIO.write(exportResult.image(), "png", file);
         } catch (IOException ex) {
-            throw new RuntimeException(ex);
+            showError("Export failed", ex);
         }
     }
 
     private ExportSize promptForExportSize(Stage owner) {
-        List<String> choices = Arrays.asList("当前尺寸 (1x)", "双倍尺寸 (2x)", "四倍尺寸 (4x)", "自定义");
+        List<String> choices = Arrays.asList("Current size (1x)", "2x", "4x", "Custom");
         ChoiceDialog<String> dialog = new ChoiceDialog<String>(choices.get(1), choices);
-        dialog.setTitle("导出高分辨率 PNG");
-        dialog.setHeaderText("选择导出尺寸");
+        dialog.setTitle("Export High Resolution PNG");
+        dialog.setHeaderText("Choose export size");
         dialog.initOwner(owner);
         Optional<String> selected = dialog.showAndWait();
         if (!selected.isPresent()) {
@@ -473,24 +505,24 @@ public class FractalFxViewport extends StackPane {
         int baseWidth = (int) Math.max(1, Math.round(getWidth()));
         int baseHeight = (int) Math.max(1, Math.round(getHeight()));
         String choice = selected.get();
-        if (choice.startsWith("当前")) {
+        if (choice.startsWith("Current")) {
             return new ExportSize(baseWidth, baseHeight);
         }
-        if (choice.startsWith("双倍")) {
+        if ("2x".equals(choice)) {
             return new ExportSize(clampExportDimension(baseWidth * 2), clampExportDimension(baseHeight * 2));
         }
-        if (choice.startsWith("四倍")) {
+        if ("4x".equals(choice)) {
             return new ExportSize(clampExportDimension(baseWidth * 4), clampExportDimension(baseHeight * 4));
         }
 
         Dialog<ExportSize> customDialog = new Dialog<ExportSize>();
-        customDialog.setTitle("自定义导出尺寸");
+        customDialog.setTitle("Custom export size");
         customDialog.initOwner(owner);
-        ButtonType okButton = new ButtonType("导出", ButtonBar.ButtonData.OK_DONE);
+        ButtonType okButton = new ButtonType("Export", ButtonBar.ButtonData.OK_DONE);
         customDialog.getDialogPane().getButtonTypes().addAll(okButton, ButtonType.CANCEL);
         Spinner<Integer> widthSpinner = new Spinner<Integer>(1, MAX_EXPORT_DIMENSION, clampExportDimension(baseWidth * 2), 1);
         Spinner<Integer> heightSpinner = new Spinner<Integer>(1, MAX_EXPORT_DIMENSION, clampExportDimension(baseHeight * 2), 1);
-        javafx.scene.layout.VBox content = new javafx.scene.layout.VBox(10, new Label("宽度"), widthSpinner, new Label("高度"), heightSpinner);
+        VBox content = new VBox(10, new Label("Width"), widthSpinner, new Label("Height"), heightSpinner);
         customDialog.getDialogPane().setContent(content);
         customDialog.setResultConverter(button -> button == okButton ? new ExportSize(widthSpinner.getValue(), heightSpinner.getValue()) : null);
         return customDialog.showAndWait().orElse(null);
@@ -502,8 +534,8 @@ public class FractalFxViewport extends StackPane {
 
     private String buildDefaultFileName(int width, int height) {
         String name = viewState.definition() != null ? viewState.definition().name() : "fractal";
-        String normalized = name.replaceAll("[^a-zA-Z0-9\\u4e00-\\u9fa5-_]", "_");
-        return normalized + "-zoom-" + String.format("%.2f", viewState.zoom()).replace('.', '_') + "-" + width + "x" + height + ".png";
+        String normalized = name.replaceAll("[^a-zA-Z0-9-_]", "_");
+        return normalized + "-zoom-" + String.format(Locale.US, "%.2f", viewState.zoom()).replace('.', '_') + "-" + width + "x" + height + ".png";
     }
 
     private WritableImage toWritableImage(BufferedImage bufferedImage) {
@@ -514,6 +546,18 @@ public class FractalFxViewport extends StackPane {
         int[] pixels = bufferedImage.getRGB(0, 0, width, height, null, 0, width);
         writer.setPixels(0, 0, width, height, PixelFormat.getIntArgbInstance(), pixels, 0, width);
         return writableImage;
+    }
+
+    private void showError(String title, Exception exception) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setTitle(title);
+        alert.setHeaderText(title);
+        alert.setContentText(exception.getMessage() != null ? exception.getMessage() : exception.getClass().getSimpleName());
+        Stage owner = resolveOwner();
+        if (owner != null) {
+            alert.initOwner(owner);
+        }
+        alert.show();
     }
 
     private void clearSelection() {
