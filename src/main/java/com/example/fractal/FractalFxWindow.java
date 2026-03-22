@@ -318,7 +318,6 @@ public class FractalFxWindow {
                 createSectionLabel("类型"),
                 fractalSelector,
                 createInlineSpinnerRow("递归层级 / 迭代次数", depthSpinner, depthValueLabel),
-                createInlineSliderRow("缩放", zoomSlider, zoomValueLabel),
                 resetViewButton
         );
         return box;
