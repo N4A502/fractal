@@ -64,6 +64,8 @@ public class FractalFxWindow {
     private final Slider brightnessFloorSlider;
     private final Slider brightnessRangeSlider;
     private final ColorPicker insideColorPicker;
+    private final ColorPicker curveColorPicker;
+    private final ColorPicker backgroundColorPicker;
     private final Button resetViewButton;
     private final Button resetPaletteButton;
     private final Label summaryTitleLabel;
@@ -107,6 +109,8 @@ public class FractalFxWindow {
         this.brightnessFloorSlider = new Slider(0, 100, 35);
         this.brightnessRangeSlider = new Slider(0, 100, 65);
         this.insideColorPicker = new ColorPicker(Color.rgb(5, 8, 18));
+        this.curveColorPicker = new ColorPicker(Color.rgb(107, 227, 255));
+        this.backgroundColorPicker = new ColorPicker(Color.rgb(7, 12, 26));
         this.resetViewButton = new Button("重置视图");
         this.resetPaletteButton = new Button("重置配色");
         this.summaryTitleLabel = new Label("分形浏览器");
@@ -182,6 +186,8 @@ public class FractalFxWindow {
         palettePresetSelector.setMaxWidth(Double.MAX_VALUE);
         palettePresetSelector.setPromptText("自定义");
         insideColorPicker.setMaxWidth(Double.MAX_VALUE);
+        curveColorPicker.setMaxWidth(Double.MAX_VALUE);
+        backgroundColorPicker.setMaxWidth(Double.MAX_VALUE);
 
         configureSlider(hueStartSlider, 90, 15);
         configureSlider(hueRangeSlider, 90, 15);
@@ -220,6 +226,8 @@ public class FractalFxWindow {
         brightnessFloorSlider.valueProperty().addListener((obs, oldValue, newValue) -> applyPaletteControls(true));
         brightnessRangeSlider.valueProperty().addListener((obs, oldValue, newValue) -> applyPaletteControls(true));
         insideColorPicker.valueProperty().addListener((obs, oldValue, newValue) -> applyPaletteControls(true));
+        curveColorPicker.valueProperty().addListener((obs, oldValue, newValue) -> applyPaletteControls(true));
+        backgroundColorPicker.valueProperty().addListener((obs, oldValue, newValue) -> applyPaletteControls(true));
 
         viewport.setInteractionListener(new FractalFxViewport.InteractionListener() {
             @Override
@@ -573,7 +581,9 @@ public class FractalFxWindow {
                 (float) (saturationSlider.getValue() / 100.0),
                 (float) (brightnessFloorSlider.getValue() / 100.0),
                 (float) (brightnessRangeSlider.getValue() / 100.0),
-                toRgb(insideColorPicker.getValue())
+                toRgb(insideColorPicker.getValue()),
+                toRgb(curveColorPicker.getValue()),
+                toRgb(backgroundColorPicker.getValue())
         );
         EscapeTimeColorManager.setSettings(settings);
         updatePaletteMetricLabels();
@@ -595,6 +605,8 @@ public class FractalFxWindow {
             brightnessFloorSlider.setValue(settings.brightnessFloor() * 100.0);
             brightnessRangeSlider.setValue(settings.brightnessRange() * 100.0);
             insideColorPicker.setValue(fromRgb(settings.insideColorRgb()));
+            curveColorPicker.setValue(fromRgb(settings.curveColorRgb()));
+            backgroundColorPicker.setValue(fromRgb(settings.backgroundColorRgb()));
             updatePaletteMetricLabels();
         } finally {
             updatingPaletteControls = false;
@@ -621,6 +633,8 @@ public class FractalFxWindow {
         brightnessFloorSlider.setDisable(!enabled);
         brightnessRangeSlider.setDisable(!enabled);
         insideColorPicker.setDisable(!enabled);
+        curveColorPicker.setDisable(!enabled);
+        backgroundColorPicker.setDisable(!enabled);
         paletteSwatchPane.setDisable(!enabled);
         resetPaletteButton.setDisable(!enabled);
         paletteHintLabel.setText(enabled
@@ -790,7 +804,7 @@ public class FractalFxWindow {
         swatch.setTooltip(new Tooltip(label));
         swatch.setStyle("-fx-background-color: #" + String.format("%06X", rgb) + "; -fx-background-radius: 999; -fx-border-color: #dce2eb; -fx-border-radius: 999;");
         swatch.setOnAction(event -> {
-            insideColorPicker.setValue(fromRgb(rgb));
+            curveColorPicker.setValue(fromRgb(rgb));
             applyPaletteControls(true);
         });
         return swatch;

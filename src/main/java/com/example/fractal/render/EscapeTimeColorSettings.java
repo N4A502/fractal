@@ -10,19 +10,25 @@ public final class EscapeTimeColorSettings {
     private final float brightnessFloor;
     private final float brightnessRange;
     private final int insideColorRgb;
+    private final int curveColorRgb;
+    private final int backgroundColorRgb;
 
     public EscapeTimeColorSettings(float hueStartDegrees,
                                    float hueRangeDegrees,
                                    float saturation,
                                    float brightnessFloor,
                                    float brightnessRange,
-                                   int insideColorRgb) {
+                                   int insideColorRgb,
+                                   int curveColorRgb,
+                                   int backgroundColorRgb) {
         this.hueStartDegrees = clamp(hueStartDegrees, 0.0f, 360.0f);
         this.hueRangeDegrees = clamp(hueRangeDegrees, 0.0f, 360.0f);
         this.saturation = clamp(saturation, 0.0f, 1.0f);
         this.brightnessFloor = clamp(brightnessFloor, 0.0f, 1.0f);
         this.brightnessRange = clamp(brightnessRange, 0.0f, 1.0f);
         this.insideColorRgb = insideColorRgb & 0xFFFFFF;
+        this.curveColorRgb = curveColorRgb & 0xFFFFFF;
+        this.backgroundColorRgb = backgroundColorRgb & 0xFFFFFF;
     }
 
     public float hueStartDegrees() {
@@ -47,6 +53,14 @@ public final class EscapeTimeColorSettings {
 
     public int insideColorRgb() {
         return insideColorRgb;
+    }
+
+    public int curveColorRgb() {
+        return curveColorRgb;
+    }
+
+    public int backgroundColorRgb() {
+        return backgroundColorRgb;
     }
 
     public int computeColorRgb(int iterations, int maxIterations) {

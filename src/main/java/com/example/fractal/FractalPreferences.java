@@ -1,5 +1,6 @@
 package com.example.fractal;
 
+import com.example.fractal.render.EscapeTimeColorPreset;
 import com.example.fractal.render.EscapeTimeColorSettings;
 
 import java.util.prefs.Preferences;
@@ -20,6 +21,8 @@ public final class FractalPreferences {
     private static final String KEY_BRIGHTNESS_FLOOR = "brightnessFloor";
     private static final String KEY_BRIGHTNESS_RANGE = "brightnessRange";
     private static final String KEY_INSIDE_COLOR = "insideColor";
+    private static final String KEY_CURVE_COLOR = "curveColor";
+    private static final String KEY_BACKGROUND_COLOR = "backgroundColor";
     private static final String KEY_SIDEBAR_VISIBLE = "sidebarVisible";
     private static final String KEY_STAGE_WIDTH = "stageWidth";
     private static final String KEY_STAGE_HEIGHT = "stageHeight";
@@ -32,7 +35,7 @@ public final class FractalPreferences {
     }
 
     public SavedConfiguration load() {
-        EscapeTimeColorSettings defaultPalette = new EscapeTimeColorSettings(342.0f, 306.0f, 0.85f, 0.35f, 0.65f, 0x050812);
+        EscapeTimeColorSettings defaultPalette = EscapeTimeColorPreset.CLASSIC.createSettings();
         return new SavedConfiguration(
                 preferences.get(KEY_FRACTAL_NAME, null),
                 preferences.getInt(KEY_DEPTH, 6),
@@ -47,7 +50,9 @@ public final class FractalPreferences {
                         preferences.getFloat(KEY_SATURATION, defaultPalette.saturation()),
                         preferences.getFloat(KEY_BRIGHTNESS_FLOOR, defaultPalette.brightnessFloor()),
                         preferences.getFloat(KEY_BRIGHTNESS_RANGE, defaultPalette.brightnessRange()),
-                        preferences.getInt(KEY_INSIDE_COLOR, defaultPalette.insideColorRgb())
+                        preferences.getInt(KEY_INSIDE_COLOR, defaultPalette.insideColorRgb()),
+                        preferences.getInt(KEY_CURVE_COLOR, defaultPalette.curveColorRgb()),
+                        preferences.getInt(KEY_BACKGROUND_COLOR, defaultPalette.backgroundColorRgb())
                 ),
                 preferences.getBoolean(KEY_SIDEBAR_VISIBLE, true),
                 preferences.getDouble(KEY_STAGE_WIDTH, 1520.0),
@@ -70,6 +75,8 @@ public final class FractalPreferences {
         preferences.putFloat(KEY_BRIGHTNESS_FLOOR, configuration.palette().brightnessFloor());
         preferences.putFloat(KEY_BRIGHTNESS_RANGE, configuration.palette().brightnessRange());
         preferences.putInt(KEY_INSIDE_COLOR, configuration.palette().insideColorRgb());
+        preferences.putInt(KEY_CURVE_COLOR, configuration.palette().curveColorRgb());
+        preferences.putInt(KEY_BACKGROUND_COLOR, configuration.palette().backgroundColorRgb());
         preferences.putBoolean(KEY_SIDEBAR_VISIBLE, configuration.sidebarVisible());
         preferences.putDouble(KEY_STAGE_WIDTH, configuration.stageWidth());
         preferences.putDouble(KEY_STAGE_HEIGHT, configuration.stageHeight());
@@ -124,52 +131,17 @@ public final class FractalPreferences {
             this.stageMaximized = stageMaximized;
         }
 
-        public String fractalName() {
-            return fractalName;
-        }
-
-        public int depth() {
-            return depth;
-        }
-
-        public double zoom() {
-            return zoom;
-        }
-
-        public double offsetX() {
-            return offsetX;
-        }
-
-        public double offsetY() {
-            return offsetY;
-        }
-
-        public int viewWidth() {
-            return viewWidth;
-        }
-
-        public int viewHeight() {
-            return viewHeight;
-        }
-
-        public EscapeTimeColorSettings palette() {
-            return palette;
-        }
-
-        public boolean sidebarVisible() {
-            return sidebarVisible;
-        }
-
-        public double stageWidth() {
-            return stageWidth;
-        }
-
-        public double stageHeight() {
-            return stageHeight;
-        }
-
-        public boolean stageMaximized() {
-            return stageMaximized;
-        }
+        public String fractalName() { return fractalName; }
+        public int depth() { return depth; }
+        public double zoom() { return zoom; }
+        public double offsetX() { return offsetX; }
+        public double offsetY() { return offsetY; }
+        public int viewWidth() { return viewWidth; }
+        public int viewHeight() { return viewHeight; }
+        public EscapeTimeColorSettings palette() { return palette; }
+        public boolean sidebarVisible() { return sidebarVisible; }
+        public double stageWidth() { return stageWidth; }
+        public double stageHeight() { return stageHeight; }
+        public boolean stageMaximized() { return stageMaximized; }
     }
 }
