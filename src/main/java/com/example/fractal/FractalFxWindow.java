@@ -340,7 +340,14 @@ public class FractalFxWindow {
     }
 
     private VBox createPaletteCard() {
+        palettePresetSelector.setPrefHeight(36);
+        resetPaletteButton.setMinHeight(36);
+        resetPaletteButton.setPrefHeight(36);
+        resetPaletteButton.setPrefWidth(112);
+        resetPaletteButton.setMaxWidth(112);
+
         HBox presetRow = new HBox(8, palettePresetSelector, resetPaletteButton);
+        presetRow.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
         HBox.setHgrow(palettePresetSelector, Priority.ALWAYS);
 
         VBox quickColorBox = new VBox(8,
