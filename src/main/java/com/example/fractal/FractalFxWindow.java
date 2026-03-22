@@ -249,11 +249,6 @@ public class FractalFxWindow {
         paletteComboPane.setMaxWidth(Double.MAX_VALUE);
         paletteComboPane.getChildren().setAll(buildPaletteCombos());
 
-        paletteSwatchPane.setHgap(4);
-        paletteSwatchPane.setVgap(0);
-        paletteSwatchPane.setPrefWrapLength(1000);
-        paletteSwatchPane.setMaxWidth(Double.MAX_VALUE);
-        paletteSwatchPane.getChildren().setAll(buildPaletteSwatches());
         updatePaletteMetricLabels();
     }
 
@@ -436,8 +431,6 @@ public class FractalFxWindow {
                 createInlineColorPickerRow(backgroundColorSectionLabel, backgroundColorPicker),
                 paletteComboSectionLabel,
                 paletteComboPane,
-                paletteSwatchSectionLabel,
-                paletteSwatchPane,
                 paletteHintLabel
         );
 
@@ -772,7 +765,6 @@ public class FractalFxWindow {
         backgroundColorPicker.setDisable(!enabled);
         paletteGradientPreview.setDisable(!enabled);
         paletteComboPane.setDisable(!enabled);
-        paletteSwatchPane.setDisable(!enabled);
         resetPaletteButton.setDisable(!enabled);
 
         palettePresetSectionLabel.setText("风格预设");
@@ -1006,43 +998,8 @@ public class FractalFxWindow {
         applyPaletteControls(true);
     }
 
-    private List<Button> buildPaletteSwatches() {
-        return Arrays.asList(
-                createSwatchButton("\u6df1\u591c\u84dd", 0x050812),
-                createSwatchButton("\u6696\u767d", 0xFAFAFA),
-                createSwatchButton("\u70ad\u9ed1", 0x040404),
-                createSwatchButton("\u6d77\u6d0b\u84dd", 0x0D3B66),
-                createSwatchButton("\u73ca\u745a\u6a59", 0xF25F5C),
-                createSwatchButton("\u677e\u77f3\u7eff", 0x2EC4B6),
-                createSwatchButton("\u7425\u73c0\u9ec4", 0xFFBF69),
-                createSwatchButton("\u85b0\u8863\u8349\u7070", 0x6C7A89)
-        );
-    }
 
-    private Button createSwatchButton(String label, int rgb) {
-        Button swatch = new Button();
-        swatch.setMinSize(28, 28);
-        swatch.setPrefSize(28, 28);
-        swatch.setMaxSize(28, 28);
-        swatch.setTooltip(new Tooltip(label));
-        swatch.setStyle("-fx-background-color: #" + String.format("%06X", rgb) + "; -fx-background-radius: 999; -fx-border-color: #dce2eb; -fx-border-radius: 999;");
-        swatch.setOnAction(event -> applyPaletteSwatch(rgb));
-        return swatch;
-    }
 
-    private void applyPaletteSwatch(int rgb) {
-        Color swatchColor = fromRgb(rgb);
-        FractalDefinition definition = fractalSelector.getValue();
-        curveColorPicker.setValue(swatchColor);
-        if (isEscapeTimeDefinition(definition)) {
-            hueStartSlider.setValue(swatchColor.getHue());
-            saturationSlider.setValue(swatchColor.getSaturation() * 100.0);
-            double brightness = swatchColor.getBrightness() * 100.0;
-            brightnessFloorSlider.setValue(Math.max(8.0, Math.min(brightnessFloorSlider.getValue(), brightness)));
-            brightnessRangeSlider.setValue(Math.max(18.0, brightnessRangeSlider.getValue()));
-        }
-        applyPaletteControls(true);
-    }
 
     private FractalDefinition findDefinition(String name) {
         if (name != null) {
@@ -1108,7 +1065,7 @@ public class FractalFxWindow {
     }
 
     private void styleSpinner(Spinner<Integer> spinner) {
-        spinner.setStyle("-fx-background-color: white; -fx-border-color: transparent; -fx-focus-color: transparent; -fx-faint-focus-color: transparent;");
+        spinner.setStyle("-fx-background-color: white; -fx-border-color: #c8d0dc; -fx-border-radius: 8; -fx-background-radius: 8; -fx-focus-color: #c8d0dc; -fx-faint-focus-color: transparent;");
         spinner.getEditor().setStyle("-fx-background-color: white; -fx-border-color: transparent; -fx-focus-color: transparent; -fx-faint-focus-color: transparent; -fx-text-fill: #181e2a;");
     }
 
