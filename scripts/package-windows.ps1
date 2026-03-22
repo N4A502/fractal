@@ -1,5 +1,6 @@
 param(
-    [switch]$SkipCompile
+    [switch]$SkipCompile,
+    [string]$MavenRepo = ""
 )
 
 Set-StrictMode -Version Latest
@@ -27,10 +28,12 @@ if ($rawAppVersion -match '^(\d+)(?:\.(\d+))?(?:\.(\d+))?') {
     $packagedAppVersion = '1.0.0'
 }
 
-$repoCandidates = @(
-    (Join-Path $repoRoot '.m2\repository'),
-    (Join-Path $env:USERPROFILE '.m2\repository')
-) | Where-Object { Test-Path $_ }
+$defaultRepo = Join-Path $env:USERPROFILE '.m2\repository'
+$resolvedRepo = if ([string]::IsNullOrWhiteSpace($MavenRepo)) { $defaultRepo } else { $MavenRepo }
+if (-not (Test-Path $resolvedRepo)) {
+    throw "Maven repository not found: $resolvedRepo"
+}
+$repoCandidates = @($resolvedRepo)
 
 function Resolve-VersionDir {
     param(
@@ -52,7 +55,7 @@ function Resolve-VersionDir {
         }
     }
 
-    throw "No versions found for $RelativeArtifactPath"
+    throw "No versions found for $RelativeArtifactPath in $resolvedRepo"
 }
 
 function Copy-IfExists {
@@ -137,7 +140,7 @@ foreach ($artifact in $lwjglArtifacts) {
 }
 
 if ($lwjglMissing) {
-    Write-Warning 'LWJGL jars were not found in the local Maven cache. The packaged app will run in CPU fallback mode unless those jars are installed later.'
+    Write-Warning 'LWJGL jars were not found in the configured Maven cache. The packaged app will run in CPU fallback mode unless those jars are installed later.'
 }
 
 & jpackage --type app-image --dest $distDir --input $inputDir --name $appName --main-jar $appJar --main-class $mainClass --vendor 'OpenAI Codex' --description 'Fractal Explorer' --app-version $packagedAppVersion
