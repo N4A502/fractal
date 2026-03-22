@@ -76,6 +76,13 @@ public class FractalFxWindow {
     private final Label backendPillLabel;
     private final Label renderPillLabel;
     private final Label paletteHintLabel;
+    private final Label palettePresetSectionLabel;
+    private final Label palettePreviewSectionLabel;
+    private final Label paletteComboSectionLabel;
+    private final Label insideColorSectionLabel;
+    private final Label curveColorSectionLabel;
+    private final Label backgroundColorSectionLabel;
+    private final Label paletteSwatchSectionLabel;
     private final Label statusLabel;
     private final Label hueStartValueLabel;
     private final Label hueRangeValueLabel;
@@ -86,6 +93,7 @@ public class FractalFxWindow {
     private final Label vibranceValueLabel;
     private final Label exposureValueLabel;
     private final Region paletteGradientPreview;
+    private final FlowPane paletteComboPane;
     private final FlowPane paletteSwatchPane;
     private ScrollPane sidebar;
     private boolean updatingZoomSlider;
@@ -126,6 +134,13 @@ public class FractalFxWindow {
         this.backendPillLabel = createPillLabel();
         this.renderPillLabel = createPillLabel();
         this.paletteHintLabel = new Label("先选预设，再用高级调色微调；调色盘用于快速改内部颜色。");
+        this.palettePresetSectionLabel = new Label();
+        this.palettePreviewSectionLabel = new Label();
+        this.paletteComboSectionLabel = new Label();
+        this.insideColorSectionLabel = new Label();
+        this.curveColorSectionLabel = new Label();
+        this.backgroundColorSectionLabel = new Label();
+        this.paletteSwatchSectionLabel = new Label();
         this.statusLabel = new Label("光标：-, - | 缩放：1.00x | 偏移：(0, 0)");
         this.hueStartValueLabel = createValueBadge();
         this.hueRangeValueLabel = createValueBadge();
@@ -136,6 +151,7 @@ public class FractalFxWindow {
         this.vibranceValueLabel = createValueBadge();
         this.exposureValueLabel = createValueBadge();
         this.paletteGradientPreview = new Region();
+        this.paletteComboPane = new FlowPane();
         this.paletteSwatchPane = new FlowPane();
 
         configureStage();
@@ -174,6 +190,13 @@ public class FractalFxWindow {
     private void configureControls() {
         statusLabel.setStyle("-fx-text-fill: #343d4e; -fx-font-size: 11px;");
         paletteHintLabel.setStyle("-fx-text-fill: #5e687a; -fx-font-size: 10px;");
+        styleSectionLabel(palettePresetSectionLabel);
+        styleSectionLabel(palettePreviewSectionLabel);
+        styleSectionLabel(paletteComboSectionLabel);
+        styleSectionLabel(insideColorSectionLabel);
+        styleSectionLabel(curveColorSectionLabel);
+        styleSectionLabel(backgroundColorSectionLabel);
+        styleSectionLabel(paletteSwatchSectionLabel);
         viewSizeValueLabel.setStyle("-fx-text-fill: #181e2a; -fx-font-size: 12px; -fx-font-weight: 700;");
 
         fractalSelector.setMaxWidth(Double.MAX_VALUE);
@@ -213,6 +236,12 @@ public class FractalFxWindow {
         paletteGradientPreview.setPrefHeight(18);
         paletteGradientPreview.setMaxWidth(Double.MAX_VALUE);
         paletteGradientPreview.setStyle("-fx-background-color: linear-gradient(from 0% 0% to 100% 0%, #050812, #6BE3FF); -fx-background-radius: 999; -fx-border-color: #dce2eb; -fx-border-radius: 999;");
+
+        paletteComboPane.setHgap(6);
+        paletteComboPane.setVgap(6);
+        paletteComboPane.setPrefWrapLength(1000);
+        paletteComboPane.setMaxWidth(Double.MAX_VALUE);
+        paletteComboPane.getChildren().setAll(buildPaletteCombos());
 
         paletteSwatchPane.setHgap(4);
         paletteSwatchPane.setVgap(0);
@@ -389,17 +418,22 @@ public class FractalFxWindow {
         expertPane.setStyle("-fx-text-fill: #181e2a; -fx-font-size: 12px; -fx-font-weight: 700;");
 
         VBox quickColorBox = new VBox(8,
-                createSectionLabel("风格预设"),
+                palettePresetSectionLabel,
                 presetRow,
-                createSectionLabel("渐变预览"),
+                palettePreviewSectionLabel,
                 paletteGradientPreview,
                 createSliderRow("对比度", contrastSlider, contrastValueLabel),
                 createSliderRow("鲜艳度", vibranceSlider, vibranceValueLabel),
                 createSliderRow("明暗", exposureSlider, exposureValueLabel),
-                createInlineColorPickerRow("内部颜色", insideColorPicker),
-                createInlineColorPickerRow("曲线颜色", curveColorPicker),
-                createInlineColorPickerRow("背景颜色", backgroundColorPicker),
-                createSectionLabel("调色盘"),
+                insideColorSectionLabel,
+                createInlineColorPickerRow("", insideColorPicker),
+                curveColorSectionLabel,
+                createInlineColorPickerRow("", curveColorPicker),
+                backgroundColorSectionLabel,
+                createInlineColorPickerRow("", backgroundColorPicker),
+                paletteComboSectionLabel,
+                paletteComboPane,
+                paletteSwatchSectionLabel,
                 paletteSwatchPane,
                 paletteHintLabel
         );
@@ -423,12 +457,17 @@ public class FractalFxWindow {
     }
 
     private HBox createInlineColorPickerRow(String title, ColorPicker picker) {
-        Label titleLabel = createSectionLabel(title);
         picker.setPrefWidth(116);
         picker.setMaxWidth(116);
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
-        HBox row = new HBox(8, titleLabel, spacer, picker);
+        HBox row;
+        if (title == null || title.isEmpty()) {
+            row = new HBox(spacer, picker);
+        } else {
+            Label titleLabel = createSectionLabel(title);
+            row = new HBox(8, titleLabel, spacer, picker);
+        }
         row.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
         return row;
     }
@@ -741,6 +780,10 @@ public class FractalFxWindow {
                 : "请先选择一种分形。");
     }
 
+    private boolean isEscapeTimeDefinition(FractalDefinition definition) {
+        return definition != null && definition.renderer() instanceof AbstractEscapeTimeRenderer;
+    }
+
     private boolean isPaletteEnabled() {
         return fractalSelector.getValue() != null;
     }
@@ -918,6 +961,35 @@ public class FractalFxWindow {
         alert.showAndWait();
     }
 
+    private List<Button> buildPaletteCombos() {
+        return Arrays.asList(
+                createPaletteComboButton("夜幕青", 0x050812, 0x3BC9DB, 0x081826),
+                createPaletteComboButton("纸白黑", 0xF6F4EF, 0x2E3138, 0xFCFBF7),
+                createPaletteComboButton("熔岩橙", 0x170605, 0xF97316, 0x2B0E0B),
+                createPaletteComboButton("苔藓绿", 0x0E1511, 0x4FAF66, 0x16231B),
+                createPaletteComboButton("薄雾紫", 0x17131F, 0xA78BFA, 0x221C30)
+        );
+    }
+
+    private Button createPaletteComboButton(String label, int insideRgb, int curveRgb, int backgroundRgb) {
+        Button button = new Button(label);
+        button.setStyle("-fx-background-color: white; -fx-text-fill: #181e2a; -fx-border-color: #dce2eb; -fx-border-radius: 999; -fx-background-radius: 999; -fx-padding: 6 10 6 10;");
+        button.setOnAction(event -> applyPaletteCombo(insideRgb, curveRgb, backgroundRgb));
+        return button;
+    }
+
+    private void applyPaletteCombo(int insideRgb, int curveRgb, int backgroundRgb) {
+        insideColorPicker.setValue(fromRgb(insideRgb));
+        curveColorPicker.setValue(fromRgb(curveRgb));
+        backgroundColorPicker.setValue(fromRgb(backgroundRgb));
+        Color swatchColor = fromRgb(curveRgb);
+        hueStartSlider.setValue(swatchColor.getHue());
+        saturationSlider.setValue(swatchColor.getSaturation() * 100.0);
+        brightnessFloorSlider.setValue(Math.max(8.0, Math.min(55.0, swatchColor.getBrightness() * 45.0)));
+        brightnessRangeSlider.setValue(Math.max(22.0, swatchColor.getBrightness() * 70.0));
+        applyPaletteControls(true);
+    }
+
     private List<Button> buildPaletteSwatches() {
         return Arrays.asList(
                 createSwatchButton("\u6df1\u591c\u84dd", 0x050812),
@@ -944,8 +1016,9 @@ public class FractalFxWindow {
 
     private void applyPaletteSwatch(int rgb) {
         Color swatchColor = fromRgb(rgb);
+        FractalDefinition definition = fractalSelector.getValue();
         curveColorPicker.setValue(swatchColor);
-        if (isPaletteEnabled()) {
+        if (isEscapeTimeDefinition(definition)) {
             hueStartSlider.setValue(swatchColor.getHue());
             saturationSlider.setValue(swatchColor.getSaturation() * 100.0);
             double brightness = swatchColor.getBrightness() * 100.0;
@@ -986,8 +1059,12 @@ public class FractalFxWindow {
 
     private Label createSectionLabel(String text) {
         Label label = new Label(text);
-        label.setStyle("-fx-text-fill: #181e2a; -fx-font-size: 12px; -fx-font-weight: 700;");
+        styleSectionLabel(label);
         return label;
+    }
+
+    private void styleSectionLabel(Label label) {
+        label.setStyle("-fx-text-fill: #181e2a; -fx-font-size: 12px; -fx-font-weight: 700;");
     }
 
     private Label wrapLabel(String text) {
