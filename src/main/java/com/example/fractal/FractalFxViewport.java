@@ -159,7 +159,7 @@ public class FractalFxViewport extends StackPane {
         if (!viewState.hasDefinition()) {
             return;
         }
-        exportImageWithSize(owner, viewWidth, viewHeight, "Export Current View");
+        exportImageWithSize(owner, viewWidth, viewHeight, "??????");
     }
 
     public void exportHighResolutionView(Stage owner) {
@@ -168,7 +168,7 @@ public class FractalFxViewport extends StackPane {
         }
         ExportSize exportSize = promptForExportSize(owner);
         if (exportSize != null) {
-            exportImageWithSize(owner, exportSize.width, exportSize.height, "Export High Resolution PNG");
+            exportImageWithSize(owner, exportSize.width, exportSize.height, "?????? PNG");
         }
     }
 
@@ -199,12 +199,31 @@ public class FractalFxViewport extends StackPane {
         renderService.shutdown();
     }
 
+
+    public double getCurrentZoom() {
+        return viewState.zoom();
+    }
+
+    public double getCurrentOffsetX() {
+        return viewState.offsetX();
+    }
+
+    public double getCurrentOffsetY() {
+        return viewState.offsetY();
+    }
+
+    public void applyState(FractalDefinition definition, int depth, double zoom, double offsetX, double offsetY) {
+        viewState = new FractalViewState(definition, depth, zoom, offsetX, offsetY);
+        scheduleRender();
+        notifyViewChanged();
+    }
+
     private ContextMenu buildContextMenu() {
-        MenuItem exportCurrent = new MenuItem("Export current view");
+        MenuItem exportCurrent = new MenuItem("??????");
         exportCurrent.setOnAction(event -> exportCurrentView(resolveOwner()));
-        MenuItem exportHighRes = new MenuItem("Export high resolution PNG");
+        MenuItem exportHighRes = new MenuItem("?????? PNG");
         exportHighRes.setOnAction(event -> exportHighResolutionView(resolveOwner()));
-        MenuItem reset = new MenuItem("Reset view");
+        MenuItem reset = new MenuItem("????");
         reset.setOnAction(event -> {
             if (interactionListener != null) {
                 interactionListener.onResetRequested();
@@ -269,7 +288,7 @@ public class FractalFxViewport extends StackPane {
                 Platform.runLater(() -> {
                     renderInProgress = false;
                     refreshOverlay();
-                    showError("Render failed", exception);
+                    showError("????", exception);
                 });
             }
         });
@@ -482,7 +501,7 @@ public class FractalFxViewport extends StackPane {
             graphics.strokeRect(x, y, width, height);
         }
 
-        renderStatusLabel.setText(renderInProgress ? "Rendering..." : "Last render: " + lastRenderDurationMillis + " ms");
+        renderStatusLabel.setText(renderInProgress ? "???..." : "?????" + lastRenderDurationMillis + " ms");
         if (!renderInProgress) {
             frozenImageView.setOpacity(0.0);
             frozenImageView.setTranslateX(0.0);
@@ -495,7 +514,7 @@ public class FractalFxViewport extends StackPane {
     private void exportImageWithSize(Stage owner, int width, int height, String title) {
         FileChooser chooser = new FileChooser();
         chooser.setTitle(title);
-        chooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("PNG Image", "*.png"));
+        chooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("PNG ??", "*.png"));
         chooser.setInitialFileName(buildDefaultFileName(width, height));
         File file = chooser.showSaveDialog(owner);
         if (file == null) {
@@ -509,15 +528,15 @@ public class FractalFxViewport extends StackPane {
             RenderResult exportResult = renderService.renderMeasured(RenderRequest.of(viewState, width, height));
             ImageIO.write(exportResult.image(), "png", file);
         } catch (IOException ex) {
-            showError("Export failed", ex);
+            showError("????", ex);
         }
     }
 
     private ExportSize promptForExportSize(Stage owner) {
-        List<String> choices = Arrays.asList("Current viewport size", "2x", "4x", "Custom");
+        List<String> choices = Arrays.asList("??????", "2x", "4x", "???");
         ChoiceDialog<String> dialog = new ChoiceDialog<String>(choices.get(0), choices);
-        dialog.setTitle("Export High Resolution PNG");
-        dialog.setHeaderText("Choose export size");
+        dialog.setTitle("?????? PNG");
+        dialog.setHeaderText("??????");
         dialog.initOwner(owner);
         Optional<String> selected = dialog.showAndWait();
         if (!selected.isPresent()) {
@@ -525,7 +544,7 @@ public class FractalFxViewport extends StackPane {
         }
 
         String choice = selected.get();
-        if (choice.startsWith("Current")) {
+        if (choice.startsWith("??")) {
             return new ExportSize(viewWidth, viewHeight);
         }
         if ("2x".equals(choice)) {
@@ -536,13 +555,13 @@ public class FractalFxViewport extends StackPane {
         }
 
         Dialog<ExportSize> customDialog = new Dialog<ExportSize>();
-        customDialog.setTitle("Custom export size");
+        customDialog.setTitle("???????");
         customDialog.initOwner(owner);
-        ButtonType okButton = new ButtonType("Export", ButtonBar.ButtonData.OK_DONE);
+        ButtonType okButton = new ButtonType("??", ButtonBar.ButtonData.OK_DONE);
         customDialog.getDialogPane().getButtonTypes().addAll(okButton, ButtonType.CANCEL);
         Spinner<Integer> widthSpinner = new Spinner<Integer>(1, MAX_EXPORT_DIMENSION, clampExportDimension(viewWidth), 10);
         Spinner<Integer> heightSpinner = new Spinner<Integer>(1, MAX_EXPORT_DIMENSION, clampExportDimension(viewHeight), 10);
-        VBox content = new VBox(10, new Label("Width"), widthSpinner, new Label("Height"), heightSpinner);
+        VBox content = new VBox(10, new Label("??"), widthSpinner, new Label("??"), heightSpinner);
         customDialog.getDialogPane().setContent(content);
         customDialog.setResultConverter(button -> button == okButton ? new ExportSize(widthSpinner.getValue(), heightSpinner.getValue()) : null);
         return customDialog.showAndWait().orElse(null);

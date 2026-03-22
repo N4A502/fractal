@@ -11,7 +11,9 @@ import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
 import javafx.scene.Scene;
+import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
+import javafx.scene.control.ButtonType;
 import javafx.scene.control.ColorPicker;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
@@ -23,7 +25,9 @@ import javafx.scene.control.SeparatorMenuItem;
 import javafx.scene.control.Slider;
 import javafx.scene.control.Spinner;
 import javafx.scene.control.SpinnerValueFactory;
+import javafx.scene.control.Tooltip;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
@@ -39,6 +43,8 @@ public class FractalFxWindow {
     private final Stage stage;
     private final BorderPane root;
     private final FractalFxViewport viewport;
+    private final FractalPreferences preferences;
+    private final List<FractalDefinition> fractals;
     private final ComboBox<FractalDefinition> fractalSelector;
     private final Spinner<Integer> depthSpinner;
     private final Slider zoomSlider;
@@ -55,6 +61,7 @@ public class FractalFxWindow {
     private final Button exportButton;
     private final Button exportCurrentButton;
     private final Button resetViewButton;
+    private final Button saveConfigButton;
     private final Button sidebarToggleButton;
     private final Label summaryTitleLabel;
     private final Label summarySubtitleLabel;
@@ -67,6 +74,7 @@ public class FractalFxWindow {
     private final Label renderPillLabel;
     private final Label paletteHintLabel;
     private final Label statusLabel;
+    private final FlowPane paletteSwatchPane;
     private ScrollPane sidebar;
     private boolean updatingZoomSlider;
     private boolean updatingViewSizeControls;
@@ -76,7 +84,8 @@ public class FractalFxWindow {
     public FractalFxWindow(Stage stage) {
         this.stage = stage;
         this.root = new BorderPane();
-        List<FractalDefinition> fractals = FractalRegistry.createDefinitions();
+        this.preferences = new FractalPreferences();
+        this.fractals = FractalRegistry.createDefinitions();
         this.viewport = new FractalFxViewport();
         this.fractalSelector = new ComboBox<FractalDefinition>(FXCollections.observableArrayList(fractals));
         this.depthSpinner = new Spinner<Integer>();
@@ -91,12 +100,13 @@ public class FractalFxWindow {
         this.brightnessFloorSlider = new Slider(0, 100, 35);
         this.brightnessRangeSlider = new Slider(0, 100, 65);
         this.insideColorPicker = new ColorPicker(Color.rgb(5, 8, 18));
-        this.exportButton = new Button("High-res export");
-        this.exportCurrentButton = new Button("Current view");
-        this.resetViewButton = new Button("Reset view");
+        this.exportButton = new Button("??????");
+        this.exportCurrentButton = new Button("??????");
+        this.resetViewButton = new Button("????");
+        this.saveConfigButton = new Button("??????");
         this.sidebarToggleButton = new Button();
-        this.summaryTitleLabel = new Label("Fractal Explorer");
-        this.summarySubtitleLabel = new Label("JavaFX workspace with configurable viewport and palette.");
+        this.summaryTitleLabel = new Label("?????");
+        this.summarySubtitleLabel = new Label("?????????? CPU/GPU ????? JavaFX ????");
         this.categoryValueLabel = new Label();
         this.descriptionValueLabel = new Label();
         this.depthValueLabel = new Label();
@@ -104,16 +114,16 @@ public class FractalFxWindow {
         this.viewSizeValueLabel = new Label();
         this.backendPillLabel = createPillLabel();
         this.renderPillLabel = createPillLabel();
-        this.paletteHintLabel = new Label("Palette controls affect escape-time fractals.");
-        this.statusLabel = new Label("Cursor: -, - | Zoom: 1.00x | Offset: (0, 0)");
+        this.paletteHintLabel = new Label("????????????????
+?????????????");
+        this.statusLabel = new Label("???-, - | ???1.00x | ???(0, 0)");
+        this.paletteSwatchPane = new FlowPane();
 
         configureStage();
         configureControls();
+        restoreSavedConfiguration();
         configureInteractions();
-        syncSelection();
-        applyViewSizeControls();
-        palettePresetSelector.setValue(EscapeTimeColorPreset.CLASSIC);
-        refreshPaletteControlsFromManager();
+        refreshRuntimeInfo();
     }
 
     public void show() {
@@ -130,11 +140,12 @@ public class FractalFxWindow {
         root.setBottom(buildStatusBar());
 
         Scene scene = new Scene(root, 1520, 940, Color.web("#eef2f8"));
-        stage.setTitle("Fractal Explorer");
+        stage.setTitle("?????");
         stage.setScene(scene);
         stage.setMinWidth(1180);
         stage.setMinHeight(760);
         stage.setOnCloseRequest(event -> {
+            persistCurrentConfiguration(false);
             viewport.shutdown();
             EscapeTimeBackendSelector.shutdown();
             Platform.exit();
@@ -162,6 +173,7 @@ public class FractalFxWindow {
         viewportWidthSpinner.setMaxWidth(Double.MAX_VALUE);
         viewportHeightSpinner.setMaxWidth(Double.MAX_VALUE);
         palettePresetSelector.setMaxWidth(Double.MAX_VALUE);
+        palettePresetSelector.setPromptText("???");
         insideColorPicker.setMaxWidth(Double.MAX_VALUE);
 
         configureSlider(hueStartSlider);
@@ -173,17 +185,22 @@ public class FractalFxWindow {
         exportButton.setOnAction(event -> viewport.exportHighResolutionView(stage));
         exportCurrentButton.setOnAction(event -> viewport.exportCurrentView(stage));
         resetViewButton.setOnAction(event -> resetControls());
+        saveConfigButton.setOnAction(event -> persistCurrentConfiguration(true));
         stylePrimaryButton(exportButton);
         styleSecondaryButton(exportCurrentButton);
         styleSecondaryButton(resetViewButton);
+        styleSecondaryButton(saveConfigButton);
         styleSecondaryButton(sidebarToggleButton);
         sidebarToggleButton.setOnAction(event -> toggleSidebar());
         refreshSidebarToggleLabel();
-        refreshRuntimeInfo();
+
+        paletteSwatchPane.setHgap(8);
+        paletteSwatchPane.setVgap(8);
+        paletteSwatchPane.getChildren().setAll(buildPaletteSwatches());
     }
 
     private void configureInteractions() {
-        fractalSelector.setOnAction(event -> syncSelection());
+        fractalSelector.setOnAction(event -> syncSelection(true));
         depthSpinner.valueProperty().addListener((obs, oldValue, newValue) -> syncControls());
         zoomSlider.valueProperty().addListener((obs, oldValue, newValue) -> {
             if (!updatingZoomSlider) {
@@ -196,12 +213,12 @@ public class FractalFxWindow {
         viewportHeightSpinner.valueProperty().addListener((obs, oldValue, newValue) -> applyViewSizeControls());
 
         palettePresetSelector.setOnAction(event -> applyPalettePreset());
-        hueStartSlider.valueProperty().addListener((obs, oldValue, newValue) -> applyPaletteControls());
-        hueRangeSlider.valueProperty().addListener((obs, oldValue, newValue) -> applyPaletteControls());
-        saturationSlider.valueProperty().addListener((obs, oldValue, newValue) -> applyPaletteControls());
-        brightnessFloorSlider.valueProperty().addListener((obs, oldValue, newValue) -> applyPaletteControls());
-        brightnessRangeSlider.valueProperty().addListener((obs, oldValue, newValue) -> applyPaletteControls());
-        insideColorPicker.valueProperty().addListener((obs, oldValue, newValue) -> applyPaletteControls());
+        hueStartSlider.valueProperty().addListener((obs, oldValue, newValue) -> applyPaletteControls(true));
+        hueRangeSlider.valueProperty().addListener((obs, oldValue, newValue) -> applyPaletteControls(true));
+        saturationSlider.valueProperty().addListener((obs, oldValue, newValue) -> applyPaletteControls(true));
+        brightnessFloorSlider.valueProperty().addListener((obs, oldValue, newValue) -> applyPaletteControls(true));
+        brightnessRangeSlider.valueProperty().addListener((obs, oldValue, newValue) -> applyPaletteControls(true));
+        insideColorPicker.valueProperty().addListener((obs, oldValue, newValue) -> applyPaletteControls(true));
 
         viewport.setInteractionListener(new FractalFxViewport.InteractionListener() {
             @Override
@@ -226,23 +243,25 @@ public class FractalFxWindow {
     }
 
     private MenuBar buildMenuBar() {
-        Menu fileMenu = new Menu("File");
-        MenuItem exportCurrentItem = new MenuItem("Export Current View");
+        Menu fileMenu = new Menu("??");
+        MenuItem saveConfigItem = new MenuItem("??????");
+        saveConfigItem.setOnAction(event -> persistCurrentConfiguration(true));
+        MenuItem exportCurrentItem = new MenuItem("??????");
         exportCurrentItem.setOnAction(event -> viewport.exportCurrentView(stage));
-        MenuItem exportHighResItem = new MenuItem("Export High Resolution PNG");
+        MenuItem exportHighResItem = new MenuItem("?????? PNG");
         exportHighResItem.setOnAction(event -> viewport.exportHighResolutionView(stage));
-        MenuItem exitItem = new MenuItem("Exit");
+        MenuItem exitItem = new MenuItem("??");
         exitItem.setOnAction(event -> stage.close());
-        fileMenu.getItems().addAll(exportCurrentItem, exportHighResItem, new SeparatorMenuItem(), exitItem);
+        fileMenu.getItems().addAll(saveConfigItem, new SeparatorMenuItem(), exportCurrentItem, exportHighResItem, new SeparatorMenuItem(), exitItem);
 
-        Menu viewMenu = new Menu("View");
-        MenuItem toggleControlsItem = new MenuItem("Show / Hide Controls");
+        Menu viewMenu = new Menu("??");
+        MenuItem toggleControlsItem = new MenuItem("?? / ?????");
         toggleControlsItem.setOnAction(event -> toggleSidebar());
-        MenuItem resetViewItem = new MenuItem("Reset View");
+        MenuItem resetViewItem = new MenuItem("????");
         resetViewItem.setOnAction(event -> resetControls());
         viewMenu.getItems().addAll(toggleControlsItem, resetViewItem);
 
-        Menu paletteMenu = new Menu("Palette");
+        Menu paletteMenu = new Menu("??");
         for (EscapeTimeColorPreset preset : EscapeTimeColorPreset.values()) {
             MenuItem item = new MenuItem(preset.toString());
             item.setOnAction(event -> {
@@ -294,17 +313,17 @@ public class FractalFxWindow {
     private VBox createControlCard() {
         VBox box = createCardBox();
         box.getChildren().addAll(
-                createCardTitle("Controls"),
-                createSectionLabel("Fractal"),
+                createCardTitle("????"),
+                createSectionLabel("????"),
                 fractalSelector,
-                createSectionLabel("Category"),
+                createSectionLabel("??"),
                 categoryValueLabel,
-                createSectionLabel("Description"),
+                createSectionLabel("??"),
                 descriptionValueLabel,
-                createSectionLabel("Depth / iterations"),
+                createSectionLabel("???? / ????"),
                 depthValueLabel,
                 depthSpinner,
-                createSectionLabel("Zoom"),
+                createSectionLabel("??"),
                 zoomValueLabel,
                 zoomSlider
         );
@@ -314,15 +333,15 @@ public class FractalFxWindow {
     private VBox createViewSizeCard() {
         VBox box = createCardBox();
         box.getChildren().addAll(
-                createCardTitle("Viewport size"),
-                createSectionLabel("Preset"),
+                createCardTitle("??????"),
+                createSectionLabel("??"),
                 viewSizePresetSelector,
-                createSectionLabel("Width"),
+                createSectionLabel("??"),
                 viewportWidthSpinner,
-                createSectionLabel("Height"),
+                createSectionLabel("??"),
                 viewportHeightSpinner,
                 viewSizeValueLabel,
-                wrapLabel("The render view preserves this aspect ratio while the application window rescales. Default export uses the current view size.")
+                wrapLabel("?????????????????????????????????")
         );
         return box;
     }
@@ -330,20 +349,22 @@ public class FractalFxWindow {
     private VBox createPaletteCard() {
         VBox box = createCardBox();
         box.getChildren().addAll(
-                createCardTitle("Palette"),
-                createSectionLabel("Quick style"),
+                createCardTitle("??"),
+                createSectionLabel("????"),
                 palettePresetSelector,
-                createSectionLabel("Hue start"),
+                createSectionLabel("???"),
+                paletteSwatchPane,
+                createSectionLabel("????"),
                 hueStartSlider,
-                createSectionLabel("Hue range"),
+                createSectionLabel("????"),
                 hueRangeSlider,
-                createSectionLabel("Saturation"),
+                createSectionLabel("???"),
                 saturationSlider,
-                createSectionLabel("Brightness floor"),
+                createSectionLabel("????"),
                 brightnessFloorSlider,
-                createSectionLabel("Brightness range"),
+                createSectionLabel("????"),
                 brightnessRangeSlider,
-                createSectionLabel("Inside color"),
+                createSectionLabel("????"),
                 insideColorPicker,
                 paletteHintLabel
         );
@@ -353,12 +374,13 @@ public class FractalFxWindow {
     private VBox createExportCard() {
         VBox box = createCardBox();
         box.getChildren().addAll(
-                createCardTitle("Actions"),
+                createCardTitle("??"),
                 sidebarToggleButton,
+                saveConfigButton,
                 exportButton,
                 exportCurrentButton,
                 resetViewButton,
-                wrapLabel("High-resolution export re-renders with the current viewport size unless you choose another size in the export dialog.")
+                wrapLabel("????????????????????????????? 2x?4x ???????")
         );
         return box;
     }
@@ -366,8 +388,8 @@ public class FractalFxWindow {
     private VBox createInfoStrip() {
         VBox box = createCardBox();
         box.getChildren().addAll(
-                createCardTitle("Shortcuts"),
-                wrapLabel("Wheel zoom, drag pan, Shift-drag box zoom, double-click reset, right-click export.")
+                createCardTitle("????"),
+                wrapLabel("??????????Shift + ?????????????????")
         );
         return box;
     }
@@ -388,7 +410,37 @@ public class FractalFxWindow {
         return wrapper;
     }
 
-    private void syncSelection() {
+    private void restoreSavedConfiguration() {
+        FractalPreferences.SavedConfiguration saved = preferences.load();
+        stage.setWidth(Math.max(stage.getMinWidth(), saved.stageWidth()));
+        stage.setHeight(Math.max(stage.getMinHeight(), saved.stageHeight()));
+        stage.setMaximized(saved.stageMaximized());
+        sidebarVisible = saved.sidebarVisible();
+        root.setLeft(sidebarVisible ? sidebar : null);
+        refreshSidebarToggleLabel();
+
+        viewportWidthSpinner.getValueFactory().setValue(clamp(saved.viewWidth(), 320, 4096));
+        viewportHeightSpinner.getValueFactory().setValue(clamp(saved.viewHeight(), 240, 4096));
+        applyViewSizeControls();
+
+        EscapeTimeColorManager.setSettings(saved.palette());
+        refreshPaletteControlsFromManager();
+        syncPalettePresetSelection(saved.palette());
+
+        FractalDefinition definition = findDefinition(saved.fractalName());
+        fractalSelector.setValue(definition);
+        syncSelection(false);
+
+        int depth = clamp(saved.depth(), definition.minDepth(), definition.maxDepth());
+        depthSpinner.getValueFactory().setValue(depth);
+        setZoomSliderValue(saved.zoom());
+        viewport.applyState(definition, depth, saved.zoom(), saved.offsetX(), saved.offsetY());
+        depthValueLabel.setText(depth + " ?");
+        zoomValueLabel.setText(String.format(Locale.US, "%.2f x", saved.zoom()));
+        refreshRuntimeInfo();
+    }
+
+    private void syncSelection(boolean resetViewport) {
         FractalDefinition definition = fractalSelector.getValue();
         if (definition == null) {
             fractalSelector.getSelectionModel().selectFirst();
@@ -409,11 +461,13 @@ public class FractalFxWindow {
                 1
         ));
         zoomSlider.setMax(Math.max(400, definition.defaultZoom()));
-        zoomSlider.setValue(definition.defaultZoom());
         updatePaletteSectionState(definition);
-        viewport.resetView();
+        if (resetViewport) {
+            viewport.resetView();
+            zoomSlider.setValue(definition.defaultZoom());
+            syncControls();
+        }
         refreshRuntimeInfo();
-        syncControls();
     }
 
     private void syncControls() {
@@ -424,7 +478,7 @@ public class FractalFxWindow {
 
         int depth = depthSpinner.getValue();
         double zoom = zoomSlider.getValue() / 100.0;
-        depthValueLabel.setText(depth + " levels");
+        depthValueLabel.setText(depth + " ?");
         zoomValueLabel.setText(String.format(Locale.US, "%.2f x", zoom));
         viewport.render(definition, depth, zoom);
         refreshRuntimeInfo();
@@ -474,7 +528,7 @@ public class FractalFxWindow {
         } finally {
             updatingViewSizeControls = false;
         }
-        viewSizeValueLabel.setText(String.format(Locale.US, "Current view: %d x %d (%.2f:1)", width, height, width / (double) height));
+        viewSizeValueLabel.setText(String.format(Locale.US, "?????%d x %d (%.2f:1)", width, height, width / (double) height));
         viewport.setViewSize(width, height);
         refreshRuntimeInfo();
     }
@@ -501,7 +555,7 @@ public class FractalFxWindow {
         syncControls();
     }
 
-    private void applyPaletteControls() {
+    private void applyPaletteControls(boolean clearPresetSelection) {
         if (updatingPaletteControls) {
             return;
         }
@@ -514,6 +568,9 @@ public class FractalFxWindow {
                 toRgb(insideColorPicker.getValue())
         );
         EscapeTimeColorManager.setSettings(settings);
+        if (clearPresetSelection) {
+            syncPalettePresetSelection(settings);
+        }
         syncControls();
     }
 
@@ -532,6 +589,17 @@ public class FractalFxWindow {
         }
     }
 
+    private void syncPalettePresetSelection(EscapeTimeColorSettings settings) {
+        EscapeTimeColorPreset matched = null;
+        for (EscapeTimeColorPreset preset : EscapeTimeColorPreset.values()) {
+            if (preset.matches(settings)) {
+                matched = preset;
+                break;
+            }
+        }
+        palettePresetSelector.setValue(matched);
+    }
+
     private void updatePaletteSectionState(FractalDefinition definition) {
         boolean enabled = definition != null && definition.renderer() instanceof AbstractEscapeTimeRenderer;
         palettePresetSelector.setDisable(!enabled);
@@ -541,9 +609,11 @@ public class FractalFxWindow {
         brightnessFloorSlider.setDisable(!enabled);
         brightnessRangeSlider.setDisable(!enabled);
         insideColorPicker.setDisable(!enabled);
+        paletteSwatchPane.setDisable(!enabled);
         paletteHintLabel.setText(enabled
-                ? "Palette controls affect the current escape-time fractal."
-                : "Palette controls apply to Mandelbrot, Julia, and Burning Ship.");
+                ? "???????????????????
+???????????????"
+                : "????????????????Julia ???????");
     }
 
     private void setZoomSliderValue(double zoom) {
@@ -566,12 +636,12 @@ public class FractalFxWindow {
     private void refreshRuntimeInfo() {
         String backendText = viewport.getBackendDescription();
         boolean rendering = viewport.isRenderInProgress();
-        backendPillLabel.setText("Backend: " + backendText);
+        backendPillLabel.setText("?????" + backendText);
         if (rendering) {
-            renderPillLabel.setText("Rendering...");
+            renderPillLabel.setText("???...");
             renderPillLabel.setStyle(pillStyle("#e3edff", "#1f57c3"));
         } else {
-            renderPillLabel.setText("Last render: " + viewport.getLastRenderDurationMillis() + " ms");
+            renderPillLabel.setText("?????" + viewport.getLastRenderDurationMillis() + " ms");
             renderPillLabel.setStyle(pillStyle("#e3f7ef", "#148c5c"));
         }
     }
@@ -582,7 +652,7 @@ public class FractalFxWindow {
                 : "-, -";
         String complex = buildComplexCoordinateText(mouseX, mouseY, zoom, offsetX, offsetY);
         return String.format(Locale.US,
-                "Cursor: %s%s | Zoom: %.2fx | Offset: (%.0f, %.0f) | View: %d x %d | Backend: %s",
+                "???%s%s | ???%.2fx | ???(%.0f, %.0f) | ???%d x %d | ???%s",
                 mouse,
                 complex,
                 zoom,
@@ -612,7 +682,78 @@ public class FractalFxWindow {
                 zoom,
                 offsetY
         );
-        return String.format(Locale.US, " | Complex: %.6f %+.6fi", real, imaginary);
+        return String.format(Locale.US, " | ????%.6f %+.6fi", real, imaginary);
+    }
+
+    private void persistCurrentConfiguration(boolean showFeedback) {
+        FractalDefinition definition = fractalSelector.getValue();
+        if (definition == null) {
+            return;
+        }
+        FractalPreferences.SavedConfiguration savedConfiguration = new FractalPreferences.SavedConfiguration(
+                definition.name(),
+                depthSpinner.getValue(),
+                viewport.getCurrentZoom(),
+                viewport.getCurrentOffsetX(),
+                viewport.getCurrentOffsetY(),
+                viewport.getViewportWidth(),
+                viewport.getViewportHeight(),
+                EscapeTimeColorManager.getSettings(),
+                sidebarVisible,
+                stage.getWidth(),
+                stage.getHeight(),
+                stage.isMaximized()
+        );
+        preferences.save(savedConfiguration);
+        if (showFeedback) {
+            Alert alert = new Alert(Alert.AlertType.INFORMATION, "??????????????????", ButtonType.OK);
+            alert.initOwner(stage);
+            alert.setTitle("????");
+            alert.setHeaderText("????");
+            alert.showAndWait();
+        }
+    }
+
+    private List<Button> buildPaletteSwatches() {
+        return Arrays.asList(
+                createSwatchButton("???", 0x050812),
+                createSwatchButton("??", 0xFAFAFA),
+                createSwatchButton("??", 0x040404),
+                createSwatchButton("???", 0x0D3B66),
+                createSwatchButton("???", 0xF25F5C),
+                createSwatchButton("???", 0x2EC4B6),
+                createSwatchButton("??", 0xFFBF69),
+                createSwatchButton("????", 0x6C7A89)
+        );
+    }
+
+    private Button createSwatchButton(String label, int rgb) {
+        Button swatch = new Button();
+        swatch.setMinSize(28, 28);
+        swatch.setPrefSize(28, 28);
+        swatch.setMaxSize(28, 28);
+        swatch.setTooltip(new Tooltip(label));
+        swatch.setStyle("-fx-background-color: #" + String.format("%06X", rgb) + "; -fx-background-radius: 999; -fx-border-color: #dce2eb; -fx-border-radius: 999;");
+        swatch.setOnAction(event -> {
+            insideColorPicker.setValue(fromRgb(rgb));
+            applyPaletteControls(true);
+        });
+        return swatch;
+    }
+
+    private FractalDefinition findDefinition(String name) {
+        if (name != null) {
+            for (FractalDefinition definition : fractals) {
+                if (definition.name().equals(name)) {
+                    return definition;
+                }
+            }
+        }
+        return fractals.get(0);
+    }
+
+    private int clamp(int value, int min, int max) {
+        return Math.max(min, Math.min(max, value));
     }
 
     private VBox createCardBox() {
@@ -678,7 +819,7 @@ public class FractalFxWindow {
     }
 
     private void refreshSidebarToggleLabel() {
-        sidebarToggleButton.setText(sidebarVisible ? "Hide controls" : "Show controls");
+        sidebarToggleButton.setText(sidebarVisible ? "?????" : "?????");
     }
 
     private int toRgb(Color color) {
@@ -698,9 +839,10 @@ public class FractalFxWindow {
     private List<ViewSizePreset> createViewSizePresets() {
         return Arrays.asList(
                 new ViewSizePreset("HD 1280 x 720", 1280, 720, false),
-                new ViewSizePreset("Square 1024 x 1024", 1024, 1024, false),
-                new ViewSizePreset("Portrait 1080 x 1350", 1080, 1350, false),
-                new ViewSizePreset("Full HD 1920 x 1080", 1920, 1080, false),
+                new ViewSizePreset("??? 1024 x 1024", 1024, 1024, false),
+                new ViewSizePreset("?? 1080 x 1350", 1080, 1350, false),
+                new ViewSizePreset("??? 1920 x 1080", 1920, 1080, false),
+                new ViewSizePreset("4K UHD 3840 x 2160", 3840, 2160, false),
                 ViewSizePreset.custom(1280, 720)
         );
     }
@@ -719,7 +861,7 @@ public class FractalFxWindow {
         }
 
         private static ViewSizePreset custom(int width, int height) {
-            return new ViewSizePreset("Custom", width, height, true);
+            return new ViewSizePreset("???", width, height, true);
         }
 
         private int width() {
@@ -736,7 +878,7 @@ public class FractalFxWindow {
 
         @Override
         public String toString() {
-            return custom ? String.format(Locale.US, "Custom (%d x %d)", width, height) : label;
+            return custom ? String.format(Locale.US, "??? (%d x %d)", width, height) : label;
         }
     }
 }
