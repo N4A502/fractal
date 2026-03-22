@@ -5,13 +5,26 @@ The current UI is pure JavaFX. Rendering stays in native Java, with a default CP
 
 ## Features
 
-- Browse multiple fractal types
+- Browse multiple built-in fractal types
   - Mandelbrot Set
   - Julia Set
   - Burning Ship
   - Koch Snowflake
   - Fractal Tree
   - Sierpinski Carpet
+- Create custom formula fractals
+  - Restricted formula editor using `z` and `c`
+  - Supported operators: `+ - * / ^`
+  - Supported functions: `sin`, `cos`, `tan`, `exp`, `log`, `abs`
+  - `Mandelbrot-like` and `Julia-like` modes
+  - Built-in formula template library with 24 presets
+  - Template groups: `Stable`, `Bold`, `Floral`, `Spiral`
+  - Random formula and `Try 10` exploration actions
+- Create custom curve fractals from images
+  - Import a high-contrast image
+  - Extract the largest single contour
+  - Simplify the contour
+  - Recurse the contour into a generated fractal pattern
 - Mouse-wheel zoom, drag pan, box zoom, double-click reset
 - Viewport uses a configurable logical size and scales proportionally in the app window
 - Export the current view to PNG
@@ -38,6 +51,8 @@ The current UI is pure JavaFX. Rendering stays in native Java, with a default CP
   - Viewport interaction, preview, and export
 - `src/main/java/com/example/fractal/model/`
   - Fractal definitions and view state
+- `src/main/java/com/example/fractal/custom/`
+  - Custom formula parsing, template library, contour extraction, and shared custom state
 - `src/main/java/com/example/fractal/render/`
   - Render backends, backend selection, and color model
 - `scripts/package-windows.ps1`
@@ -111,6 +126,20 @@ The palette area currently has three layers of control:
   - Vibrance
   - Exposure
 
+## Custom Formula Notes
+
+- Formula input is intentionally restricted and does not execute Java code or scripts
+- Formula templates are grouped for quicker exploration
+- `Random Formula` samples once from the selected group
+- `Try 10` samples 10 formulas from the selected group and leaves the last result active
+
+## Custom Curve Notes
+
+- Best results come from single-subject, high-contrast source images
+- The extractor keeps the largest contour only
+- The generated result is a recursive contour-based pattern, not an inferred closed-form fractal equation
+- Curve rendering currently uses the CPU path
+
 ## GPU Notes
 
 The GPU path currently only applies to escape-time fractals and depends on local graphics support plus available LWJGL dependencies.
@@ -137,3 +166,5 @@ That means:
 - The GPU path only covers escape-time fractals
 - The Windows script currently builds an app image, not an installer
 - If LWJGL dependencies are missing locally, runtime falls back to CPU
+- Custom formula rendering currently uses the CPU path only
+- Custom curve extraction assumes a single dominant contour and may struggle with noisy or low-contrast images

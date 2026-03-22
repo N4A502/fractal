@@ -2,6 +2,13 @@ package com.example.fractal;
 
 import com.example.fractal.model.FractalDefinition;
 import com.example.fractal.model.FractalRegistry;
+import com.example.fractal.custom.ComplexFormulaParser;
+import com.example.fractal.custom.CurveContourExtractor;
+import com.example.fractal.custom.CustomCurveSettings;
+import com.example.fractal.custom.CustomFormulaLibrary;
+import com.example.fractal.custom.CustomFormulaMode;
+import com.example.fractal.custom.CustomFormulaSettings;
+import com.example.fractal.custom.CustomFractalManager;
 import com.example.fractal.render.AbstractEscapeTimeRenderer;
 import com.example.fractal.render.EscapeTimeBackendSelector;
 import com.example.fractal.render.EscapeTimeColorManager;
@@ -25,6 +32,8 @@ import javafx.scene.control.SeparatorMenuItem;
 import javafx.scene.control.Slider;
 import javafx.scene.control.Spinner;
 import javafx.scene.control.SpinnerValueFactory;
+import javafx.scene.control.TextArea;
+import javafx.scene.control.TextField;
 import javafx.scene.control.TitledPane;
 import javafx.scene.control.Tooltip;
 import javafx.scene.layout.BorderPane;
@@ -35,8 +44,10 @@ import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
+import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 
+import java.io.File;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
@@ -95,6 +106,26 @@ public class FractalFxWindow {
     private final Region paletteGradientPreview;
     private final FlowPane paletteComboPane;
     private final FlowPane paletteSwatchPane;
+    private final ComboBox<CustomFormulaMode> customFormulaModeSelector;
+    private final ComboBox<CustomFormulaLibrary.Group> customFormulaGroupSelector;
+    private final ComboBox<CustomFormulaLibrary.Template> customFormulaTemplateSelector;
+    private final TextArea customFormulaTextArea;
+    private final TextField customJuliaRealField;
+    private final TextField customJuliaImaginaryField;
+    private final Button applyCustomFormulaButton;
+    private final Button randomCustomFormulaButton;
+    private final Button tryTenCustomFormulasButton;
+    private final Button importCustomCurveButton;
+    private final Slider customCurveThresholdSlider;
+    private final Slider customCurveSimplifySlider;
+    private final Slider customCurveBranchCountSlider;
+    private final Slider customCurveChildScaleSlider;
+    private final Label customCurveThresholdValueLabel;
+    private final Label customCurveSimplifyValueLabel;
+    private final Label customCurveBranchCountValueLabel;
+    private final Label customCurveChildScaleValueLabel;
+    private final Label customFormulaStatusLabel;
+    private final Label customCurveStatusLabel;
     private ScrollPane sidebar;
     private boolean updatingZoomSlider;
     private boolean updatingViewSizeControls;
@@ -153,6 +184,26 @@ public class FractalFxWindow {
         this.paletteGradientPreview = new Region();
         this.paletteComboPane = new FlowPane();
         this.paletteSwatchPane = new FlowPane();
+        this.customFormulaModeSelector = new ComboBox<CustomFormulaMode>(FXCollections.observableArrayList(CustomFormulaMode.values()));
+        this.customFormulaGroupSelector = new ComboBox<CustomFormulaLibrary.Group>(FXCollections.observableArrayList(CustomFormulaLibrary.Group.values()));
+        this.customFormulaTemplateSelector = new ComboBox<CustomFormulaLibrary.Template>(FXCollections.observableArrayList(CustomFormulaLibrary.templates()));
+        this.customFormulaTextArea = new TextArea();
+        this.customJuliaRealField = new TextField();
+        this.customJuliaImaginaryField = new TextField();
+        this.applyCustomFormulaButton = new Button("Apply Formula");
+        this.randomCustomFormulaButton = new Button("Random Formula");
+        this.tryTenCustomFormulasButton = new Button("Try 10");
+        this.importCustomCurveButton = new Button("Import Curve Image");
+        this.customCurveThresholdSlider = new Slider(0, 255, 160);
+        this.customCurveSimplifySlider = new Slider(1, 24, 6);
+        this.customCurveBranchCountSlider = new Slider(2, 8, 4);
+        this.customCurveChildScaleSlider = new Slider(0.2, 0.8, 0.52);
+        this.customCurveThresholdValueLabel = createValueBadge();
+        this.customCurveSimplifyValueLabel = createValueBadge();
+        this.customCurveBranchCountValueLabel = createValueBadge();
+        this.customCurveChildScaleValueLabel = createValueBadge();
+        this.customFormulaStatusLabel = new Label();
+        this.customCurveStatusLabel = new Label();
 
         configureStage();
         configureControls();
@@ -223,6 +274,28 @@ public class FractalFxWindow {
         styleColorPicker(insideColorPicker);
         styleColorPicker(curveColorPicker);
         styleColorPicker(backgroundColorPicker);
+        customFormulaModeSelector.setMaxWidth(Double.MAX_VALUE);
+        customFormulaModeSelector.setValue(CustomFractalManager.getFormulaSettings().mode());
+        customFormulaGroupSelector.setMaxWidth(Double.MAX_VALUE);
+        customFormulaGroupSelector.setValue(CustomFormulaLibrary.Group.STABLE);
+        customFormulaTemplateSelector.setMaxWidth(Double.MAX_VALUE);
+        customFormulaTemplateSelector.setPromptText("Formula Templates");
+        refreshCustomFormulaTemplateChoices();
+        if (!customFormulaTemplateSelector.getItems().isEmpty()) {
+            customFormulaTemplateSelector.setValue(customFormulaTemplateSelector.getItems().get(0));
+        }
+        customFormulaTextArea.setPrefRowCount(3);
+        customFormulaTextArea.setWrapText(true);
+        customFormulaTextArea.setText(CustomFractalManager.getFormulaSettings().formulaText());
+        customJuliaRealField.setText(String.format(Locale.US, "%.4f", CustomFractalManager.getFormulaSettings().juliaReal()));
+        customJuliaImaginaryField.setText(String.format(Locale.US, "%.4f", CustomFractalManager.getFormulaSettings().juliaImaginary()));
+        customFormulaStatusLabel.setWrapText(true);
+        customFormulaStatusLabel.setStyle("-fx-text-fill: #5e687a; -fx-font-size: 11px;");
+        customCurveStatusLabel.setWrapText(true);
+        customCurveStatusLabel.setStyle("-fx-text-fill: #5e687a; -fx-font-size: 11px;");
+        styleSecondaryButton(applyCustomFormulaButton);
+        styleSecondaryButton(randomCustomFormulaButton);
+        styleSecondaryButton(importCustomCurveButton);
 
         configureSlider(hueStartSlider, 90, 15);
         configureSlider(hueRangeSlider, 90, 15);
@@ -249,6 +322,15 @@ public class FractalFxWindow {
         paletteComboPane.setMaxWidth(Double.MAX_VALUE);
         paletteComboPane.getChildren().setAll(buildPaletteCombos());
 
+        configureSlider(customCurveThresholdSlider, 64, 7);
+        configureSlider(customCurveSimplifySlider, 6, 5);
+        configureSlider(customCurveBranchCountSlider, 1, 0);
+        configureSlider(customCurveChildScaleSlider, 0.1, 4);
+        customCurveThresholdSlider.setSnapToTicks(true);
+        customCurveSimplifySlider.setSnapToTicks(true);
+        customCurveBranchCountSlider.setSnapToTicks(true);
+        updateCustomControlLabels();
+        refreshCustomStatusLabels();
         updatePaletteMetricLabels();
     }
 
@@ -277,6 +359,17 @@ public class FractalFxWindow {
         insideColorPicker.valueProperty().addListener((obs, oldValue, newValue) -> applyPaletteControls(true));
         curveColorPicker.valueProperty().addListener((obs, oldValue, newValue) -> applyPaletteControls(true));
         backgroundColorPicker.valueProperty().addListener((obs, oldValue, newValue) -> applyPaletteControls(true));
+        applyCustomFormulaButton.setOnAction(event -> applyCustomFormula());
+        randomCustomFormulaButton.setOnAction(event -> applyRandomCustomFormula());
+        tryTenCustomFormulasButton.setOnAction(event -> tryTenCustomFormulas());
+        importCustomCurveButton.setOnAction(event -> importCustomCurve());
+        customFormulaModeSelector.setOnAction(event -> applyCustomFormula());
+        customFormulaGroupSelector.setOnAction(event -> refreshCustomFormulaTemplateChoices());
+        customFormulaTemplateSelector.setOnAction(event -> applySelectedCustomFormulaTemplate());
+        customCurveThresholdSlider.valueProperty().addListener((obs, oldValue, newValue) -> updateCustomCurveExtraction(true));
+        customCurveSimplifySlider.valueProperty().addListener((obs, oldValue, newValue) -> updateCustomCurveExtraction(true));
+        customCurveBranchCountSlider.valueProperty().addListener((obs, oldValue, newValue) -> updateCustomCurveGeometry());
+        customCurveChildScaleSlider.valueProperty().addListener((obs, oldValue, newValue) -> updateCustomCurveGeometry());
 
         viewport.setInteractionListener(new FractalFxViewport.InteractionListener() {
             @Override
@@ -352,6 +445,7 @@ public class FractalFxWindow {
     private ScrollPane buildSidebar() {
         VBox sidebarContent = new VBox(10,
                 createControlCard(),
+                createCustomCard(),
                 createViewSizeCard(),
                 createPaletteCard()
         );
@@ -395,6 +489,53 @@ public class FractalFxWindow {
         return box;
     }
 
+    private VBox createCustomCard() {
+        HBox juliaRow = new HBox(8,
+                new VBox(4, createSectionLabel("Julia c (Re)"), customJuliaRealField),
+                new VBox(4, createSectionLabel("Julia c (Im)"), customJuliaImaginaryField)
+        );
+        HBox.setHgrow(juliaRow.getChildren().get(0), Priority.ALWAYS);
+        HBox.setHgrow(juliaRow.getChildren().get(1), Priority.ALWAYS);
+        HBox formulaActionRow = new HBox(8, randomCustomFormulaButton, tryTenCustomFormulasButton, applyCustomFormulaButton);
+        HBox.setHgrow(randomCustomFormulaButton, Priority.ALWAYS);
+        HBox.setHgrow(applyCustomFormulaButton, Priority.ALWAYS);
+        TitledPane formulaPane = new TitledPane("Custom Formula", new VBox(10,
+                createSectionLabel("Template Group"),
+                customFormulaGroupSelector,
+                createSectionLabel("Template Library"),
+                customFormulaTemplateSelector,
+                createSectionLabel("Mode"),
+                customFormulaModeSelector,
+                createSectionLabel("Formula"),
+                customFormulaTextArea,
+                juliaRow,
+                formulaActionRow,
+                customFormulaStatusLabel,
+                wrapLabel("Includes 24 built-in formulas across Stable, Bold, Floral, and Spiral groups. Random uses the current group. Use z and c. Supported operators: + - * / ^. Supported functions: sin, cos, tan, exp, log, abs.")
+        ));
+        formulaPane.setExpanded(true);
+        formulaPane.setCollapsible(false);
+
+        TitledPane curvePane = new TitledPane("Custom Curve", new VBox(10,
+                importCustomCurveButton,
+                createSliderRow("Threshold", customCurveThresholdSlider, customCurveThresholdValueLabel),
+                createSliderRow("Simplify", customCurveSimplifySlider, customCurveSimplifyValueLabel),
+                createSliderRow("Branches", customCurveBranchCountSlider, customCurveBranchCountValueLabel),
+                createSliderRow("Child Scale", customCurveChildScaleSlider, customCurveChildScaleValueLabel),
+                customCurveStatusLabel,
+                wrapLabel("Import a high-contrast image. The app extracts the largest contour and recurses it into a pattern.")
+        ));
+        curvePane.setExpanded(true);
+        curvePane.setCollapsible(false);
+
+        VBox box = createCardBox();
+        box.getChildren().addAll(
+                createCardTitle("Custom"),
+                formulaPane,
+                curvePane
+        );
+        return box;
+    }
     private VBox createPaletteCard() {
         palettePresetSelector.setPrefHeight(36);
         resetPaletteButton.setMinHeight(36);
@@ -599,6 +740,180 @@ public class FractalFxWindow {
         syncControls();
     }
 
+    private void refreshCustomFormulaTemplateChoices() {
+        CustomFormulaLibrary.Group group = customFormulaGroupSelector.getValue();
+        if (group == null) {
+            group = CustomFormulaLibrary.Group.STABLE;
+            customFormulaGroupSelector.setValue(group);
+        }
+        customFormulaTemplateSelector.getItems().setAll(CustomFormulaLibrary.templates(group));
+        if (!customFormulaTemplateSelector.getItems().isEmpty()) {
+            customFormulaTemplateSelector.setValue(customFormulaTemplateSelector.getItems().get(0));
+        }
+    }
+    private void applySelectedCustomFormulaTemplate() {
+        CustomFormulaLibrary.Template template = customFormulaTemplateSelector.getValue();
+        if (template == null) {
+            return;
+        }
+        loadCustomFormulaTemplate(template);
+    }
+
+    private void tryTenCustomFormulas() {
+        for (int i = 0; i < 10; i++) {
+            applyRandomCustomFormula();
+        }
+        customFormulaStatusLabel.setText("Tried 10 formulas | " + customFormulaStatusLabel.getText());
+    }
+
+    private void applyRandomCustomFormula() {
+        CustomFormulaLibrary.Group group = customFormulaGroupSelector.getValue() == null ? CustomFormulaLibrary.Group.STABLE : customFormulaGroupSelector.getValue();
+        CustomFormulaLibrary.Template template = CustomFormulaLibrary.randomTemplate(group);
+        customFormulaTemplateSelector.setValue(template);
+        loadCustomFormulaTemplate(template);
+    }
+
+    private void loadCustomFormulaTemplate(CustomFormulaLibrary.Template template) {
+        customFormulaModeSelector.setValue(template.mode());
+        customFormulaTextArea.setText(template.formula());
+        customJuliaRealField.setText(String.format(Locale.US, "%.5f", template.juliaReal()));
+        customJuliaImaginaryField.setText(String.format(Locale.US, "%.5f", template.juliaImaginary()));
+        applyCustomFormula();
+        customFormulaStatusLabel.setText(template.name() + " | " + customFormulaStatusLabel.getText());
+    }
+    private void applyCustomFormula() {
+        double juliaReal;
+        double juliaImaginary;
+        try {
+            juliaReal = Double.parseDouble(customJuliaRealField.getText().trim());
+            juliaImaginary = Double.parseDouble(customJuliaImaginaryField.getText().trim());
+        } catch (NumberFormatException ex) {
+            customFormulaStatusLabel.setText("Julia constant must be numeric.");
+            return;
+        }
+        CustomFormulaSettings settings = ComplexFormulaParser.compile(
+                customFormulaTextArea.getText(),
+                customFormulaModeSelector.getValue() == null ? CustomFormulaMode.MANDELBROT_LIKE : customFormulaModeSelector.getValue(),
+                juliaReal,
+                juliaImaginary
+        );
+        CustomFractalManager.setFormulaSettings(settings);
+        refreshCustomStatusLabels();
+        if (isCustomFormulaDefinition(fractalSelector.getValue())) {
+            syncControls();
+        }
+    }
+
+    private void importCustomCurve() {
+        FileChooser chooser = new FileChooser();
+        chooser.setTitle("Import Curve Image");
+        chooser.getExtensionFilters().addAll(
+                new FileChooser.ExtensionFilter("Image Files", "*.png", "*.jpg", "*.jpeg", "*.bmp")
+        );
+        File file = chooser.showOpenDialog(stage);
+        if (file == null) {
+            return;
+        }
+        CustomCurveSettings settings = CurveContourExtractor.extract(
+                file,
+                (int) Math.round(customCurveThresholdSlider.getValue()),
+                customCurveSimplifySlider.getValue(),
+                (int) Math.round(customCurveBranchCountSlider.getValue()),
+                customCurveChildScaleSlider.getValue()
+        );
+        CustomFractalManager.setCurveSettings(settings);
+        refreshCustomStatusLabels();
+        if (isCustomCurveDefinition(fractalSelector.getValue())) {
+            syncControls();
+        }
+    }
+
+    private void updateCustomCurveExtraction(boolean reExtract) {
+        updateCustomControlLabels();
+        CustomCurveSettings current = CustomFractalManager.getCurveSettings();
+        if (!reExtract || current.imagePath() == null || current.imagePath().isBlank()) {
+            return;
+        }
+        CustomCurveSettings settings = CurveContourExtractor.extract(
+                new File(current.imagePath()),
+                (int) Math.round(customCurveThresholdSlider.getValue()),
+                customCurveSimplifySlider.getValue(),
+                (int) Math.round(customCurveBranchCountSlider.getValue()),
+                customCurveChildScaleSlider.getValue()
+        );
+        CustomFractalManager.setCurveSettings(settings);
+        refreshCustomStatusLabels();
+        if (isCustomCurveDefinition(fractalSelector.getValue())) {
+            syncControls();
+        }
+    }
+
+    private void updateCustomCurveGeometry() {
+        updateCustomControlLabels();
+        CustomCurveSettings current = CustomFractalManager.getCurveSettings();
+        CustomCurveSettings updated = new CustomCurveSettings(
+                current.imagePath(),
+                (int) Math.round(customCurveThresholdSlider.getValue()),
+                customCurveSimplifySlider.getValue(),
+                (int) Math.round(customCurveBranchCountSlider.getValue()),
+                customCurveChildScaleSlider.getValue(),
+                current.contour(),
+                current.validationMessage()
+        );
+        CustomFractalManager.setCurveSettings(updated);
+        refreshCustomStatusLabels();
+        if (isCustomCurveDefinition(fractalSelector.getValue()) && current.hasContour()) {
+            syncControls();
+        }
+    }
+
+    private void updateCustomControlLabels() {
+        customCurveThresholdValueLabel.setText(Integer.toString((int) Math.round(customCurveThresholdSlider.getValue())));
+        customCurveSimplifyValueLabel.setText(String.format(Locale.US, "%.1f px", customCurveSimplifySlider.getValue()));
+        customCurveBranchCountValueLabel.setText(Integer.toString((int) Math.round(customCurveBranchCountSlider.getValue())));
+        customCurveChildScaleValueLabel.setText(String.format(Locale.US, "%.2f", customCurveChildScaleSlider.getValue()));
+    }
+
+    private void refreshCustomStatusLabels() {
+        CustomFormulaSettings formulaSettings = CustomFractalManager.getFormulaSettings();
+        customFormulaStatusLabel.setText(formulaSettings.validationMessage() == null
+                ? "Ready: " + formulaSettings.expression().normalizedFormula()
+                : formulaSettings.validationMessage());
+        CustomCurveSettings curveSettings = CustomFractalManager.getCurveSettings();
+        String curveText = curveSettings.validationMessage();
+        if (curveSettings.hasContour()) {
+            String sourceName = curveSettings.imagePath() == null ? "curve" : new File(curveSettings.imagePath()).getName();
+            curveText = String.format(Locale.US, "%s, %d points", sourceName, curveSettings.contour().size());
+        }
+        customCurveStatusLabel.setText(curveText == null ? "Import an image to extract a curve." : curveText);
+    }
+
+    private void updateCustomSectionState(FractalDefinition definition) {
+        boolean formulaActive = isCustomFormulaDefinition(definition);
+        boolean curveActive = isCustomCurveDefinition(definition);
+        customFormulaModeSelector.setDisable(!formulaActive);
+        customFormulaGroupSelector.setDisable(!formulaActive);
+        customFormulaTemplateSelector.setDisable(!formulaActive);
+        customFormulaTextArea.setDisable(!formulaActive);
+        customJuliaRealField.setDisable(!formulaActive);
+        customJuliaImaginaryField.setDisable(!formulaActive);
+        applyCustomFormulaButton.setDisable(!formulaActive);
+        randomCustomFormulaButton.setDisable(!formulaActive);
+        tryTenCustomFormulasButton.setDisable(!formulaActive);
+        importCustomCurveButton.setDisable(!curveActive);
+        customCurveThresholdSlider.setDisable(!curveActive);
+        customCurveSimplifySlider.setDisable(!curveActive);
+        customCurveBranchCountSlider.setDisable(!curveActive);
+        customCurveChildScaleSlider.setDisable(!curveActive);
+    }
+
+    private boolean isCustomFormulaDefinition(FractalDefinition definition) {
+        return definition != null && "Custom Formula".equals(definition.name());
+    }
+
+    private boolean isCustomCurveDefinition(FractalDefinition definition) {
+        return definition != null && "Custom Curve".equals(definition.name());
+    }
     private void applyViewSizePreset() {
         if (updatingViewSizeControls) {
             return;
