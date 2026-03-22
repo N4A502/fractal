@@ -13,7 +13,7 @@ $inputDir = Join-Path $packageRoot 'input'
 $distDir = Join-Path $targetDir 'dist'
 $appName = 'FractalExplorer'
 $appJar = 'fractal-explorer.jar'
-$mainClass = 'com.example.fractal.FractalLauncher'
+$mainClass = 'com.example.fractal.FractalApplication'
 
 [xml]$pom = Get-Content (Join-Path $repoRoot 'pom.xml')
 $preferredJavafxVersion = $pom.project.properties.'javafx.version'

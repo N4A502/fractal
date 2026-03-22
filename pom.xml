@@ -13,7 +13,7 @@
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <main.class>com.example.fractal.FractalLauncher</main.class>
+        <main.class>com.example.fractal.FractalApplication</main.class>
         <lwjgl.version>3.3.3</lwjgl.version>
         <javafx.version>21.0.7</javafx.version>
     </properties>

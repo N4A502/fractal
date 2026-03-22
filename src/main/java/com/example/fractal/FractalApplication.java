@@ -4,15 +4,20 @@ import com.example.fractal.render.EscapeTimeBackendSelector;
 import javafx.application.Application;
 import javafx.stage.Stage;
 
-public final class FractalApplication extends Application {
+public final class FractalApplication {
+
+    private FractalApplication() {
+    }
 
     public static void main(String[] args) {
         Runtime.getRuntime().addShutdownHook(new Thread(EscapeTimeBackendSelector::shutdown, "fractal-render-backend-shutdown"));
-        launch(args);
+        Application.launch(JavaFxApp.class, args);
     }
 
-    @Override
-    public void start(Stage stage) {
-        new FractalFxWindow(stage).show();
+    public static final class JavaFxApp extends Application {
+        @Override
+        public void start(Stage stage) {
+            new FractalFxWindow(stage).show();
+        }
     }
 }
