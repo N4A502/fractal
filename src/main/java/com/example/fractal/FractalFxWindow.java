@@ -114,7 +114,7 @@ public class FractalFxWindow {
         this.viewSizeValueLabel = new Label();
         this.backendPillLabel = createPillLabel();
         this.renderPillLabel = createPillLabel();
-        this.paletteHintLabel = new Label("调色参数仅对逃逸时间类分形生效?\n可使用下方调色盘快速选色?");
+        this.paletteHintLabel = new Label("\u8c03\u8272\u53c2\u6570\u4ec5\u5bf9\u9003\u9038\u65f6\u95f4\u7c7b\u5206\u5f62\u751f\u6548\u3002\n\u53ef\u4f7f\u7528\u4e0b\u65b9\u8c03\u8272\u76d8\u5feb\u901f\u9009\u8272\u3002");
         this.statusLabel = new Label("光标：-, - | 缩放：1.00x | 偏移：(0, 0)");
         this.paletteSwatchPane = new FlowPane();
 
@@ -242,25 +242,25 @@ public class FractalFxWindow {
     }
 
     private MenuBar buildMenuBar() {
-        Menu fileMenu = new Menu("??");
+        Menu fileMenu = new Menu("\u6587\u4ef6");
         MenuItem saveConfigItem = new MenuItem("保存当前配置");
         saveConfigItem.setOnAction(event -> persistCurrentConfiguration(true));
         MenuItem exportCurrentItem = new MenuItem("导出当前视图");
         exportCurrentItem.setOnAction(event -> viewport.exportCurrentView(stage));
         MenuItem exportHighResItem = new MenuItem("导出高分辨率 PNG");
         exportHighResItem.setOnAction(event -> viewport.exportHighResolutionView(stage));
-        MenuItem exitItem = new MenuItem("??");
+        MenuItem exitItem = new MenuItem("\u9000\u51fa");
         exitItem.setOnAction(event -> stage.close());
         fileMenu.getItems().addAll(saveConfigItem, new SeparatorMenuItem(), exportCurrentItem, exportHighResItem, new SeparatorMenuItem(), exitItem);
 
-        Menu viewMenu = new Menu("??");
+        Menu viewMenu = new Menu("\u89c6\u56fe");
         MenuItem toggleControlsItem = new MenuItem("显示 / 隐藏控制栏");
         toggleControlsItem.setOnAction(event -> toggleSidebar());
         MenuItem resetViewItem = new MenuItem("重置视图");
         resetViewItem.setOnAction(event -> resetControls());
         viewMenu.getItems().addAll(toggleControlsItem, resetViewItem);
 
-        Menu paletteMenu = new Menu("??");
+        Menu paletteMenu = new Menu("\u8c03\u8272");
         for (EscapeTimeColorPreset preset : EscapeTimeColorPreset.values()) {
             MenuItem item = new MenuItem(preset.toString());
             item.setOnAction(event -> {
@@ -315,14 +315,14 @@ public class FractalFxWindow {
                 createCardTitle("基础控制"),
                 createSectionLabel("分形类型"),
                 fractalSelector,
-                createSectionLabel("??"),
+                createSectionLabel("\u5206\u7c7b"),
                 categoryValueLabel,
-                createSectionLabel("??"),
+                createSectionLabel("\u8bf4\u660e"),
                 descriptionValueLabel,
                 createSectionLabel("递归层级 / 迭代次数"),
                 depthValueLabel,
                 depthSpinner,
-                createSectionLabel("??"),
+                createSectionLabel("\u7f29\u653e"),
                 zoomValueLabel,
                 zoomSlider
         );
@@ -333,11 +333,11 @@ public class FractalFxWindow {
         VBox box = createCardBox();
         box.getChildren().addAll(
                 createCardTitle("渲染视图尺寸"),
-                createSectionLabel("??"),
+                createSectionLabel("\u9884\u8bbe"),
                 viewSizePresetSelector,
-                createSectionLabel("??"),
+                createSectionLabel("\u5bbd\u5ea6"),
                 viewportWidthSpinner,
-                createSectionLabel("??"),
+                createSectionLabel("\u9ad8\u5ea6"),
                 viewportHeightSpinner,
                 viewSizeValueLabel,
                 wrapLabel("视图会保持当前宽高比随窗口整体缩放。默认导出尺寸使用当前视图大小。")
@@ -348,7 +348,7 @@ public class FractalFxWindow {
     private VBox createPaletteCard() {
         VBox box = createCardBox();
         box.getChildren().addAll(
-                createCardTitle("??"),
+                createCardTitle("\u8c03\u8272"),
                 createSectionLabel("快速风格"),
                 palettePresetSelector,
                 createSectionLabel("调色盘"),
@@ -373,7 +373,7 @@ public class FractalFxWindow {
     private VBox createExportCard() {
         VBox box = createCardBox();
         box.getChildren().addAll(
-                createCardTitle("??"),
+                createCardTitle("\u64cd\u4f5c"),
                 sidebarToggleButton,
                 saveConfigButton,
                 exportButton,
@@ -434,7 +434,7 @@ public class FractalFxWindow {
         depthSpinner.getValueFactory().setValue(depth);
         setZoomSliderValue(saved.zoom());
         viewport.applyState(definition, depth, saved.zoom(), saved.offsetX(), saved.offsetY());
-        depthValueLabel.setText(depth + " ?");
+        depthValueLabel.setText(depth + " \u5c42");
         zoomValueLabel.setText(String.format(Locale.US, "%.2f x", saved.zoom()));
         refreshRuntimeInfo();
     }
@@ -477,7 +477,7 @@ public class FractalFxWindow {
 
         int depth = depthSpinner.getValue();
         double zoom = zoomSlider.getValue() / 100.0;
-        depthValueLabel.setText(depth + " ?");
+        depthValueLabel.setText(depth + " \u5c42");
         zoomValueLabel.setText(String.format(Locale.US, "%.2f x", zoom));
         viewport.render(definition, depth, zoom);
         refreshRuntimeInfo();
@@ -610,8 +610,8 @@ public class FractalFxWindow {
         insideColorPicker.setDisable(!enabled);
         paletteSwatchPane.setDisable(!enabled);
         paletteHintLabel.setText(enabled
-                ? "调色参数会立即作用到当前逃逸时间分形?\n下方调色盘可快速切换内部颜色?"
-                : "调色功能当前仅适用于曼德勃罗集、Julia 集和燃烧之船。");
+                ? "???????????????????\n???????????????"
+                : "\u8c03\u8272\u529f\u80fd\u5f53\u524d\u4ec5\u9002\u7528\u4e8e\u66fc\u5fb7\u52c3\u7f57\u96c6\u3001Julia \u96c6\u548c\u71c3\u70e7\u4e4b\u8239\u3002");
     }
 
     private void setZoomSliderValue(double zoom) {
@@ -715,13 +715,13 @@ public class FractalFxWindow {
     private List<Button> buildPaletteSwatches() {
         return Arrays.asList(
                 createSwatchButton("深夜蓝", 0x050812),
-                createSwatchButton("??", 0xFAFAFA),
-                createSwatchButton("??", 0x040404),
+                createSwatchButton("\u6696\u767d", 0xFAFAFA),
+                createSwatchButton("\u70ad\u9ed1", 0x040404),
                 createSwatchButton("海洋蓝", 0x0D3B66),
                 createSwatchButton("珊瑚橙", 0xF25F5C),
                 createSwatchButton("松石绿", 0x2EC4B6),
-                createSwatchButton("??", 0xFFBF69),
-                createSwatchButton("薀衣草灰", 0x6C7A89)
+                createSwatchButton("\u7425\u73c0", 0xFFBF69),
+                createSwatchButton("\u85b0\u8863\u8349\u7070", 0x6C7A89),
         );
     }
 
@@ -838,7 +838,7 @@ public class FractalFxWindow {
         return Arrays.asList(
                 new ViewSizePreset("HD 1280 x 720", 1280, 720, false),
                 new ViewSizePreset("正方形 1024 x 1024", 1024, 1024, false),
-                new ViewSizePreset("?? 1080 x 1350", 1080, 1350, false),
+                new ViewSizePreset("\u7ad6\u7248 1080 x 1350", 1080, 1350, false),
                 new ViewSizePreset("全高清 1920 x 1080", 1920, 1080, false),
                 new ViewSizePreset("4K UHD 3840 x 2160", 3840, 2160, false),
                 ViewSizePreset.custom(1280, 720)

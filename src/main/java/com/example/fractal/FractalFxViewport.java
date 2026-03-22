@@ -6,6 +6,7 @@ import com.example.fractal.render.FractalRenderService;
 import com.example.fractal.render.RenderRequest;
 import com.example.fractal.render.RenderResult;
 import javafx.animation.PauseTransition;
+import javafx.geometry.Point2D;
 import javafx.application.Platform;
 import javafx.geometry.Pos;
 import javafx.scene.canvas.Canvas;
@@ -144,8 +145,8 @@ public class FractalFxViewport extends StackPane {
         notifyViewChanged();
     }
 
-    public void resetView() {
-        dragAnchorX = Double.NaN;
+        interactionRenderDelay.stop();
+        clearSelection();
         dragAnchorY = Double.NaN;
         selectionMode = false;
         clearSelection();
@@ -311,8 +312,8 @@ public class FractalFxViewport extends StackPane {
         renderPane.setOnMouseDragged(this::handleMouseDragged);
         renderPane.setOnMouseReleased(this::handleMouseReleased);
         renderPane.setOnMouseMoved(event -> {
-            mouseX = event.getX();
-            mouseY = event.getY();
+            mouseX = logicalX(event);
+            mouseY = logicalY(event);
             notifyViewChanged();
         });
         renderPane.setOnMouseExited(event -> {
@@ -339,50 +340,50 @@ public class FractalFxViewport extends StackPane {
         }
 
         contextMenu.hide();
-        mouseX = event.getX();
-        mouseY = event.getY();
+        mouseX = logicalX(event);
+        mouseY = logicalY(event);
         if (event.isShiftDown()) {
             selectionMode = true;
-            selectionStartX = event.getX();
-            selectionStartY = event.getY();
-            selectionEndX = event.getX();
-            selectionEndY = event.getY();
+            selectionStartX = logicalX(event);
+            selectionStartY = logicalY(event);
+            selectionEndX = logicalX(event);
+            selectionEndY = logicalY(event);
             dragAnchorX = Double.NaN;
             dragAnchorY = Double.NaN;
         } else {
             selectionMode = false;
             clearSelection();
-            dragAnchorX = event.getX();
-            dragAnchorY = event.getY();
+            dragAnchorX = logicalX(event);
+            dragAnchorY = logicalY(event);
         }
         refreshOverlay();
         notifyViewChanged();
     }
 
     private void handleMouseDragged(MouseEvent event) {
-        mouseX = event.getX();
-        mouseY = event.getY();
+        mouseX = logicalX(event);
+        mouseY = logicalY(event);
         if (selectionMode) {
-            selectionEndX = event.getX();
-            selectionEndY = event.getY();
+            selectionEndX = logicalX(event);
+            selectionEndY = logicalY(event);
             refreshOverlay();
             notifyViewChanged();
             return;
         }
 
         if (Double.isNaN(dragAnchorX) || Double.isNaN(dragAnchorY)) {
-            dragAnchorX = event.getX();
-            dragAnchorY = event.getY();
+            dragAnchorX = logicalX(event);
+            dragAnchorY = logicalY(event);
             return;
         }
 
-        double nextOffsetX = viewState.offsetX() + event.getX() - dragAnchorX;
-        double nextOffsetY = viewState.offsetY() + event.getY() - dragAnchorY;
+        double currentX = logicalX(event);
+        double currentY = logicalY(event);
+        double nextOffsetX = viewState.offsetX() + currentX - dragAnchorX;
+        double nextOffsetY = viewState.offsetY() + currentY - dragAnchorY;
         viewState = viewState.withOffset(nextOffsetX, nextOffsetY);
-        dragAnchorX = event.getX();
-        dragAnchorY = event.getY();
-        updateFrozenTransform();
-        refreshOverlay();
+        dragAnchorX = currentX;
+        dragAnchorY = currentY;
         notifyViewChanged();
     }
 
@@ -391,11 +392,11 @@ public class FractalFxViewport extends StackPane {
             return;
         }
 
-        mouseX = event.getX();
-        mouseY = event.getY();
+        mouseX = logicalX(event);
+        mouseY = logicalY(event);
         if (selectionMode) {
-            selectionEndX = event.getX();
-            selectionEndY = event.getY();
+            selectionEndX = logicalX(event);
+            selectionEndY = logicalY(event);
             applySelectionZoom();
         } else {
             interactionRenderDelay.stop();
@@ -411,7 +412,7 @@ public class FractalFxViewport extends StackPane {
     private void handleScroll(ScrollEvent event) {
         double factor = event.getDeltaY() > 0 ? 1.12 : 1.0 / 1.12;
         double nextZoom = clampMin(viewState.zoom() * factor, MIN_ZOOM);
-        applyZoom(nextZoom, event.getX(), event.getY());
+        applyZoom(nextZoom, logicalX(event), logicalY(event));
         interactionRenderDelay.playFromStart();
         if (interactionListener != null) {
             interactionListener.onZoomChanged(nextZoom, viewState.offsetX(), viewState.offsetY(), true);
@@ -501,7 +502,7 @@ public class FractalFxViewport extends StackPane {
             graphics.strokeRect(x, y, width, height);
         }
 
-        renderStatusLabel.setText(renderInProgress ? "渲染中..." : "最近渲染：" + lastRenderDurationMillis + " ms");
+        renderStatusLabel.setText(renderInProgress ? "???..." : "?????" + lastRenderDurationMillis + " ms");
         if (!renderInProgress) {
             frozenImageView.setOpacity(0.0);
             frozenImageView.setTranslateX(0.0);
@@ -514,7 +515,7 @@ public class FractalFxViewport extends StackPane {
     private void exportImageWithSize(Stage owner, int width, int height, String title) {
         FileChooser chooser = new FileChooser();
         chooser.setTitle(title);
-        chooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("PNG ??", "*.png"));
+        chooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("PNG \u56fe\u7247", "*.png"));
         chooser.setInitialFileName(buildDefaultFileName(width, height));
         File file = chooser.showSaveDialog(owner);
         if (file == null) {
@@ -528,15 +529,15 @@ public class FractalFxViewport extends StackPane {
             RenderResult exportResult = renderService.renderMeasured(RenderRequest.of(viewState, width, height));
             ImageIO.write(exportResult.image(), "png", file);
         } catch (IOException ex) {
-            showError("导出失败", ex);
+            showError("\u5bfc\u51fa\u5931\u8d25", ex);
         }
     }
 
     private ExportSize promptForExportSize(Stage owner) {
-        List<String> choices = Arrays.asList("当前视图尺寸", "2x", "4x", "自定义");
+        List<String> choices = Arrays.asList("\u5f53\u524d\u89c6\u56fe\u5c3a\u5bf8", "2x", "4x", "\u81ea\u5b9a\u4e49");
         ChoiceDialog<String> dialog = new ChoiceDialog<String>(choices.get(0), choices);
-        dialog.setTitle("导出高分辨率 PNG");
-        dialog.setHeaderText("选择导出尺寸");
+        dialog.setTitle("\u5bfc\u51fa\u9ad8\u5206\u8fa8\u7387 PNG");
+        dialog.setHeaderText("\u9009\u62e9\u5bfc\u51fa\u5c3a\u5bf8");
         dialog.initOwner(owner);
         Optional<String> selected = dialog.showAndWait();
         if (!selected.isPresent()) {
@@ -544,7 +545,7 @@ public class FractalFxViewport extends StackPane {
         }
 
         String choice = selected.get();
-        if (choice.startsWith("??")) {
+        if (choice.startsWith("\u5f53\u524d")) {
             return new ExportSize(viewWidth, viewHeight);
         }
         if ("2x".equals(choice)) {
@@ -555,15 +556,17 @@ public class FractalFxViewport extends StackPane {
         }
 
         Dialog<ExportSize> customDialog = new Dialog<ExportSize>();
-        customDialog.setTitle("自定义导出尺寸");
+        customDialog.setTitle("\u81ea\u5b9a\u4e49\u5bfc\u51fa\u5c3a\u5bf8");
         customDialog.initOwner(owner);
-        ButtonType okButton = new ButtonType("??", ButtonBar.ButtonData.OK_DONE);
+        ButtonType okButton = new ButtonType("\u5bfc\u51fa", ButtonBar.ButtonData.OK_DONE);
         customDialog.getDialogPane().getButtonTypes().addAll(okButton, ButtonType.CANCEL);
         Spinner<Integer> widthSpinner = new Spinner<Integer>(1, MAX_EXPORT_DIMENSION, clampExportDimension(viewWidth), 10);
         Spinner<Integer> heightSpinner = new Spinner<Integer>(1, MAX_EXPORT_DIMENSION, clampExportDimension(viewHeight), 10);
-        VBox content = new VBox(10, new Label("??"), widthSpinner, new Label("??"), heightSpinner);
+        VBox content = new VBox(10, new Label("\u5bbd\u5ea6"), widthSpinner, new Label("\u9ad8\u5ea6"), heightSpinner);
         customDialog.getDialogPane().setContent(content);
         customDialog.setResultConverter(button -> button == okButton ? new ExportSize(widthSpinner.getValue(), heightSpinner.getValue()) : null);
+        return customDialog.showAndWait().orElse(null);
+    }
         return customDialog.showAndWait().orElse(null);
     }
 
@@ -604,6 +607,33 @@ public class FractalFxViewport extends StackPane {
         selectionStartY = Double.NaN;
         selectionEndX = Double.NaN;
         selectionEndY = Double.NaN;
+    }
+
+    private double logicalX(MouseEvent event) {
+        return clampLogical(sceneToLogical(event.getSceneX(), event.getSceneY()).getX(), viewWidth);
+    }
+
+    private double logicalY(MouseEvent event) {
+        return clampLogical(sceneToLogical(event.getSceneX(), event.getSceneY()).getY(), viewHeight);
+    }
+
+    private double logicalX(ScrollEvent event) {
+        return clampLogical(sceneToLogical(event.getSceneX(), event.getSceneY()).getX(), viewWidth);
+    }
+
+    private double logicalY(ScrollEvent event) {
+        return clampLogical(sceneToLogical(event.getSceneX(), event.getSceneY()).getY(), viewHeight);
+    }
+
+    private Point2D sceneToLogical(double sceneX, double sceneY) {
+        return renderPane.sceneToLocal(sceneX, sceneY);
+    }
+
+    private double clampLogical(double value, double max) {
+        if (!Double.isFinite(value)) {
+            return 0.0;
+        }
+        return Math.max(0.0, Math.min(max, value));
     }
 
     private void notifyViewChanged() {
