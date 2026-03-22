@@ -31,4 +31,9 @@ public class MandelbrotRenderer extends AbstractEscapeTimeRenderer {
     protected double getCenterY() {
         return 0.0;
     }
+
+    @Override
+    protected EscapeTimeShaderProfile getShaderProfile() {
+        return EscapeTimeShaderProfile.MANDELBROT;
+    }
 }
